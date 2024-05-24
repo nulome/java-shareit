@@ -7,9 +7,11 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.handler.UnknownValueException;
 import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.dto.UserMapper;
 import ru.practicum.shareit.user.model.User;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -20,45 +22,53 @@ public class UserServiceImpl implements UserService {
     private final ModelMapper modelMapper;
 
     @Override
-    public User createUser(UserDto userDto) {
+    public UserDto createUser(UserDto userDto) {
         log.info("Получен запрос Post /users - {}", userDto.getEmail());
         User user = modelMapper.map(userDto, User.class);
-        return userRepository.createUser(user);
+        user = userRepository.createUser(user);
+        return UserMapper.toUserDto(user);
     }
 
     @Override
-    public User updateUser(User user) {
-        log.info("Получен запрос Put /users - {}", user.getEmail());
+    public UserDto updateUser(UserDto userDto) {
+        log.info("Получен запрос Put /users - {}", userDto.getEmail());
+        User user = modelMapper.map(userDto, User.class);
         checkAndReceiptUserInDataBase(user.getId());
-        return userRepository.updateUser(user);
+        user = userRepository.updateUser(user);
+        return UserMapper.toUserDto(user);
     }
 
     @Override
-    public User deleteUser(Integer userId) {
+    public UserDto deleteUser(Integer userId) {
         log.info("Получен запрос Delete /users/{}", userId);
         User user = checkAndReceiptUserInDataBase(userId);
         userRepository.deleteUser(userId);
-        return user;
+        return UserMapper.toUserDto(user);
     }
 
     @Override
-    public List<User> getUsers() {
+    public List<UserDto> getUsers() {
         log.info("Получен запрос Get /users");
-        return userRepository.getUsers();
+        List<User> listUser = userRepository.getUsers();
+        return listUser.stream()
+                .map(UserMapper::toUserDto)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public User getUser(Integer userId) {
+    public UserDto getUser(Integer userId) {
         log.info("Получен запрос Get /users/{}", userId);
-        return checkAndReceiptUserInDataBase(userId);
+        User user = checkAndReceiptUserInDataBase(userId);
+        return UserMapper.toUserDto(user);
     }
 
     @Override
-    public User changeUser(Integer userId, UserDto userDto) {
+    public UserDto changeUser(Integer userId, UserDto userDto) {
         log.info("Получен запрос Patch /users/{}", userId);
         User user = checkAndReceiptUserInDataBase(userId);
         changeUserByDto(user, userDto);
-        return userRepository.updateUser(user);
+        user = userRepository.updateUser(user);
+        return UserMapper.toUserDto(user);
     }
 
     private void changeUserByDto(User user, UserDto userDto) {

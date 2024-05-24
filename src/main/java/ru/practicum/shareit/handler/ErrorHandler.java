@@ -80,12 +80,12 @@ public class ErrorHandler {
         );
     }
 
-//    @ExceptionHandler
-//    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-//    public ErrorResponse handleThrowable(final Throwable e) {
-//        log.error("Error 500 {}", e.getMessage());
-//        return new ErrorResponse(
-//                "Произошла непредвиденная ошибка.", e.getMessage()
-//        );
-//    }
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorResponse handleThrowable(final Throwable e) {
+        log.error("Error 500 {}", e.getMessage());
+        return new ErrorResponse(
+                "Произошла непредвиденная ошибка.", e.getMessage()
+        );
+    }
 }
