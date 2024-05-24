@@ -7,12 +7,14 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.handler.UnknownValueException;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.dto.ItemMapper;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -24,60 +26,71 @@ public class ItemServiceImpl implements ItemService {
     private final ModelMapper modelMapper;
 
     @Override
-    public Item createItem(Integer userId, ItemDto itemDto) {
+    public ItemDto createItem(Integer userId, ItemDto itemDto) {
         log.info("Получен запрос Post /items - {} пользователя {}", itemDto.getName(), userId);
         User user = checkAndReceiptUserInDataBase(userId);
-        Item item = modelMapper.map(itemDto, Item.class);
+        Item item = ItemMapper.toItem(itemDto);
         item.setOwner(user);
-        return itemRepository.createItem(item);
+        item = itemRepository.createItem(item);
+        return ItemMapper.toItemDto(item);
     }
 
     @Override
-    public Item updateItem(Integer userId, Item item) {
-        log.info("Получен запрос Put /items - {} пользователя {}", item.getName(), userId);
-        verificationOfCreator(userId, checkAndReceiptItemInDataBase(item.getId()));
-        return itemRepository.updateItem(item);
+    public ItemDto updateItem(Integer userId, ItemDto itemDto) {
+        log.info("Получен запрос Put /items - {} пользователя {}", itemDto.getName(), userId);
+        Item item = ItemMapper.toItem(itemDto);
+        checkAndReceiptItemInDataBase(item.getId());
+        verificationOfCreator(userId, item);
+        item = itemRepository.updateItem(item);
+        return ItemMapper.toItemDto(item);
     }
 
     @Override
-    public Item deleteItem(Integer userId, Integer itemId) {
+    public ItemDto deleteItem(Integer userId, Integer itemId) {
         log.info("Получен запрос Delete /items/{} пользователя {}", itemId, userId);
         Item item = checkAndReceiptItemInDataBase(itemId);
         verificationOfCreator(userId, item);
         itemRepository.deleteItem(itemId);
-        return item;
+        return ItemMapper.toItemDto(item);
     }
 
     @Override
-    public List<Item> getItems(Integer userId) {
+    public List<ItemDto> getItems(Integer userId) {
         log.info("Получен запрос Get /items пользователя {}", userId);
         User user = checkAndReceiptUserInDataBase(userId);
-        return itemRepository.getItems(user);
+        List<Item> itemList = itemRepository.getItems(user);
+        return itemList.stream()
+                .map(ItemMapper::toItemDto)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public Item getItem(Integer itemId) {
+    public ItemDto getItem(Integer itemId) {
         log.info("Получен запрос Get /items/{}", itemId);
-        return checkAndReceiptItemInDataBase(itemId);
+        Item item = checkAndReceiptItemInDataBase(itemId);
+        return ItemMapper.toItemDto(item);
     }
 
     @Override
-    public Item changeItem(Integer userId, Integer itemId, ItemDto itemDto) {
+    public ItemDto changeItem(Integer userId, Integer itemId, ItemDto itemDto) {
         log.info("Получен запрос Patch /items/{} пользователя {}", itemId, userId);
-        Item item = getItem(itemId);
+        Item item = checkAndReceiptItemInDataBase(itemId);
         verificationOfCreator(userId, item);
         changeItemByDto(item, itemDto);
-        Item item1 = itemRepository.updateItem(item);
-        return item1;
+        item = itemRepository.updateItem(item);
+        return ItemMapper.toItemDto(item);
     }
 
     @Override
-    public List<Item> getItemByTextSearch(String text) {
+    public List<ItemDto> getItemByTextSearch(String text) {
         log.info("Получен запрос Get /search?text={}", text);
         if (text.isBlank()) {
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
-        return itemRepository.getItemByTextSearch(text);
+        List<Item> itemList = itemRepository.getItemByTextSearch(text);
+        return itemList.stream()
+                .map(ItemMapper::toItemDto)
+                .collect(Collectors.toList());
     }
 
     private void changeItemByDto(Item item, ItemDto itemDto) {

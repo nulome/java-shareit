@@ -3,7 +3,6 @@ package ru.practicum.shareit.item;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.model.Item;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -16,37 +15,37 @@ public class ItemController {
     private final ItemService itemService;
 
     @PostMapping
-    public Item createItem(@RequestHeader("X-Sharer-User-Id") int userId, @RequestBody @Valid ItemDto itemDto) {
+    public ItemDto createItem(@RequestHeader("X-Sharer-User-Id") int userId, @RequestBody @Valid ItemDto itemDto) {
         return itemService.createItem(userId, itemDto);
     }
 
     @PutMapping
-    public Item updateItem(@RequestHeader("X-Sharer-User-Id") int userId, @RequestBody @Valid Item item) {
-        return itemService.updateItem(userId, item);
+    public ItemDto updateItem(@RequestHeader("X-Sharer-User-Id") int userId, @RequestBody @Valid ItemDto itemDto) {
+        return itemService.updateItem(userId, itemDto);
     }
 
     @DeleteMapping("/{itemId}")
-    public Item deleteItem(@RequestHeader("X-Sharer-User-Id") int userId, @PathVariable int itemId) {
+    public ItemDto deleteItem(@RequestHeader("X-Sharer-User-Id") int userId, @PathVariable int itemId) {
         return itemService.deleteItem(userId, itemId);
     }
 
     @GetMapping
-    public List<Item> getItems(@RequestHeader("X-Sharer-User-Id") int userId) {
+    public List<ItemDto> getItems(@RequestHeader("X-Sharer-User-Id") int userId) {
         return itemService.getItems(userId);
     }
 
     @GetMapping("/{itemId}")
-    public Item getItem(@PathVariable int itemId) {
+    public ItemDto getItem(@PathVariable int itemId) {
         return itemService.getItem(itemId);
     }
 
     @GetMapping("/search")
-    public List<Item> getItemByTextSearch(@RequestParam String text) {
+    public List<ItemDto> getItemByTextSearch(@RequestParam String text) {
         return itemService.getItemByTextSearch(text);
     }
 
     @PatchMapping("/{itemId}")
-    public Item changeItem(@RequestHeader("X-Sharer-User-Id") int userId, @PathVariable int itemId,
+    public ItemDto changeItem(@RequestHeader("X-Sharer-User-Id") int userId, @PathVariable int itemId,
                            @RequestBody ItemDto itemDto) {
         return itemService.changeItem(userId, itemId, itemDto);
     }

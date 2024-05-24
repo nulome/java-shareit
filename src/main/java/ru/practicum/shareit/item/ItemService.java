@@ -2,24 +2,22 @@ package ru.practicum.shareit.item;
 
 import org.springframework.validation.annotation.Validated;
 import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.model.Item;
 
-import javax.validation.Valid;
 import java.util.List;
 
 @Validated
 public interface ItemService {
-    Item createItem(Integer userId, @Valid ItemDto itemDto);
+    ItemDto createItem(Integer userId, ItemDto itemDto);
 
-    Item updateItem(Integer userId, Item item);
+    ItemDto updateItem(Integer userId, ItemDto itemDto);
 
-    Item deleteItem(Integer userId, Integer itemId);
+    ItemDto deleteItem(Integer userId, Integer itemId);
 
-    List<Item> getItems(Integer userId);
+    List<ItemDto> getItems(Integer userId);
 
-    Item getItem(Integer itemId);
+    ItemDto getItem(Integer itemId);
 
-    Item changeItem(Integer userId, Integer itemId, ItemDto itemDto);
+    ItemDto changeItem(Integer userId, Integer itemId, ItemDto itemDto);
 
-    List<Item> getItemByTextSearch(String text);
+    List<ItemDto> getItemByTextSearch(String text);
 }
