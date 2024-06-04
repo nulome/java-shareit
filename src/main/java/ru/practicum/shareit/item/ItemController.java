@@ -1,8 +1,12 @@
 package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.commentDto.CommentResponse;
+import ru.practicum.shareit.item.commentDto.CreateCommentRequestDto;
+import ru.practicum.shareit.item.dto.*;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -15,38 +19,51 @@ public class ItemController {
     private final ItemService itemService;
 
     @PostMapping
-    public ItemDto createItem(@RequestHeader("X-Sharer-User-Id") int userId, @RequestBody @Valid ItemDto itemDto) {
-        return itemService.createItem(userId, itemDto);
+    @Transactional
+    @ResponseStatus(HttpStatus.CREATED)
+    public ItemResponse createItem(@RequestHeader("X-Sharer-User-Id") int userId,
+                                   @RequestBody @Valid CreateItemRequestDto createItemRequestDto) {
+        return itemService.createItem(userId, createItemRequestDto);
+    }
+
+    @Transactional
+    @GetMapping("/{itemId}")
+    public ItemWithDateBookingResponse readItem(@RequestHeader("X-Sharer-User-Id") int userId,
+                                                @PathVariable int itemId) {
+        return itemService.readItem(userId, itemId);
     }
 
     @PutMapping
-    public ItemDto updateItem(@RequestHeader("X-Sharer-User-Id") int userId, @RequestBody @Valid ItemDto itemDto) {
-        return itemService.updateItem(userId, itemDto);
+    public ItemResponse updateItem(@RequestHeader("X-Sharer-User-Id") int userId,
+                                   @RequestBody @Valid ItemRequestDto itemRequestDto) {
+        return itemService.updateItem(userId, itemRequestDto);
     }
 
     @DeleteMapping("/{itemId}")
-    public ItemDto deleteItem(@RequestHeader("X-Sharer-User-Id") int userId, @PathVariable int itemId) {
-        return itemService.deleteItem(userId, itemId);
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteItem(@RequestHeader("X-Sharer-User-Id") int userId, @PathVariable int itemId) {
+        itemService.deleteItem(userId, itemId);
     }
 
     @GetMapping
-    public List<ItemDto> getItems(@RequestHeader("X-Sharer-User-Id") int userId) {
+    public List<ItemWithDateBookingResponse> getItems(@RequestHeader("X-Sharer-User-Id") int userId) {
         return itemService.getItems(userId);
     }
 
-    @GetMapping("/{itemId}")
-    public ItemDto getItem(@PathVariable int itemId) {
-        return itemService.getItem(itemId);
-    }
-
     @GetMapping("/search")
-    public List<ItemDto> getItemByTextSearch(@RequestParam String text) {
-        return itemService.getItemByTextSearch(text);
+    public List<ItemResponse> getItemsByTextSearch(@RequestParam String text) {
+        return itemService.getItemsByTextSearch(text);
     }
 
     @PatchMapping("/{itemId}")
-    public ItemDto changeItem(@RequestHeader("X-Sharer-User-Id") int userId, @PathVariable int itemId,
-                           @RequestBody ItemDto itemDto) {
-        return itemService.changeItem(userId, itemId, itemDto);
+    public ItemResponse changeItem(@RequestHeader("X-Sharer-User-Id") int userId, @PathVariable int itemId,
+                                   @RequestBody PatchItemRequestDto patchItemRequestDto) {
+        return itemService.changeItem(userId, itemId, patchItemRequestDto);
+    }
+
+    @PostMapping("/{itemId}/comment")
+    public CommentResponse createComment(@RequestHeader("X-Sharer-User-Id") int userId, @PathVariable int itemId,
+                                      @RequestBody @Valid CreateCommentRequestDto createCommentRequestDto) {
+        return itemService.createComment(userId, itemId, createCommentRequestDto);
     }
 }

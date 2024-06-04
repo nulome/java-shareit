@@ -3,90 +3,83 @@ package ru.practicum.shareit.user;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
-import ru.practicum.shareit.handler.UnknownValueException;
-import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.dto.UserMapper;
+import ru.practicum.shareit.user.dto.*;
 import ru.practicum.shareit.user.model.User;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import javax.persistence.EntityNotFoundException;
+
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
-    public final UserRepository userRepository;
+    private final UserRepository userRepository;
     private final ModelMapper modelMapper;
 
     @Override
-    public UserDto createUser(UserDto userDto) {
-        log.info("Получен запрос Post /users - {}", userDto.getEmail());
-        User user = modelMapper.map(userDto, User.class);
-        user = userRepository.createUser(user);
-        return UserMapper.toUserDto(user);
+    public UserResponse createUser(CreateUserRequestDto createUserRequestDto) {
+        log.info("Получен запрос Post /users - {}", createUserRequestDto.getEmail());
+        User user = modelMapper.map(createUserRequestDto, User.class);
+        user = userRepository.save(user);
+
+        return modelMapper.map(user, UserResponse.class);
     }
 
     @Override
-    public UserDto updateUser(UserDto userDto) {
-        log.info("Получен запрос Put /users - {}", userDto.getEmail());
-        User user = modelMapper.map(userDto, User.class);
-        checkAndReceiptUserInDataBase(user.getId());
-        user = userRepository.updateUser(user);
-        return UserMapper.toUserDto(user);
-    }
-
-    @Override
-    public UserDto deleteUser(Integer userId) {
-        log.info("Получен запрос Delete /users/{}", userId);
-        User user = checkAndReceiptUserInDataBase(userId);
-        userRepository.deleteUser(userId);
-        return UserMapper.toUserDto(user);
-    }
-
-    @Override
-    public List<UserDto> getUsers() {
-        log.info("Получен запрос Get /users");
-        List<User> listUser = userRepository.getUsers();
-        return listUser.stream()
-                .map(UserMapper::toUserDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public UserDto getUser(Integer userId) {
+    public UserResponse readUser(Integer userId) {
         log.info("Получен запрос Get /users/{}", userId);
-        User user = checkAndReceiptUserInDataBase(userId);
-        return UserMapper.toUserDto(user);
+        User user = userRepository.getUserById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Значение в базе не найдено user: " + userId));
+        return modelMapper.map(user, UserResponse.class);
     }
 
     @Override
-    public UserDto changeUser(Integer userId, UserDto userDto) {
+    public UserResponse updateUser(UserRequestDto userRequestDto) {
+        log.info("Получен запрос Put /users - {}", userRequestDto.getEmail());
+        UserDto userDto = modelMapper.map(userRequestDto, UserDto.class);
+
+        User user = modelMapper.map(userDto, User.class);
+        user = userRepository.save(user);
+        return modelMapper.map(user, UserResponse.class);
+    }
+
+    @Override
+    public void deleteUser(Integer userId) {
+        log.info("Получен запрос Delete /users/{}", userId);
+        userRepository.deleteById(userId);
+    }
+
+    @Override
+    public Page<UserResponse> getUsers(PageRequest pageRequest) {
+        log.info("Получен запрос Get /users");
+        Page<User> listUser = userRepository.findAll(pageRequest);
+        return listUser.map(user -> modelMapper.map(user, UserResponse.class));
+    }
+
+    @Override
+    public UserResponse changeUser(Integer userId, PatchUserRequestDto patchUserRequestDto) {
         log.info("Получен запрос Patch /users/{}", userId);
-        User user = checkAndReceiptUserInDataBase(userId);
-        changeUserByDto(user, userDto);
-        user = userRepository.updateUser(user);
-        return UserMapper.toUserDto(user);
+        patchUserUpdateByDto(userId, patchUserRequestDto);
+
+        User user = userRepository.getReferenceById(userId);
+        return modelMapper.map(user, UserResponse.class);
     }
 
-    private void changeUserByDto(User user, UserDto userDto) {
-        if (userDto.getName() != null) {
-            user.setName(userDto.getName());
+    private void patchUserUpdateByDto(Integer userId, PatchUserRequestDto patchUserRequestDto) {
+        if (patchUserRequestDto.getName() != null) {
+            if (patchUserRequestDto.getName().isBlank()) {
+                throw new IllegalArgumentException("Поле Name не может быть пустым.");
+            }
+            log.debug("Обновление имени в /users/{}", userId);
+            userRepository.updateName(userId, patchUserRequestDto.getName());
         }
-        if (userDto.getEmail() != null) {
-            user.setEmail(userDto.getEmail());
-        }
-    }
-
-    private User checkAndReceiptUserInDataBase(Integer userId) {
-        log.trace("Проверка User: {} в базе", userId);
-        try {
-            return userRepository.getUser(userId);
-        } catch (EmptyResultDataAccessException e) {
-            log.error("Ошибка в запросе к базе данных. Не найдено значение по userId: {} \n {}", userId, e.getMessage());
-            throw new UnknownValueException("Передан не верный userId: " + userId);
+        if (patchUserRequestDto.getEmail() != null) {
+            log.debug("Обновление Email в /users/{}", userId);
+            userRepository.updateUserEmail(userId, patchUserRequestDto.getEmail());
         }
     }
 }

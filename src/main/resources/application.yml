@@ -1,0 +1,22 @@
+server:
+  port: 8080
+
+spring:
+  jpa:
+    hibernate.ddl-auto: validate
+  properties:
+    hibernate:
+      dialect: org.hibernate.dialect.PostgreSQL10Dialect
+      format_sql: true
+  sql.init.mode: always
+  profiles.active: ${U_PROFILE:test}
+
+logging:
+  level:
+    org:
+      springframework:
+        orm:
+          jpa: INFO
+          jpa.JpaTransactionManager: DEBUG
+          transaction: INFO
+          transaction.interceptor: TRACE

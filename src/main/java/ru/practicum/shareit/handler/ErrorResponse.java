@@ -1,27 +1,20 @@
 package ru.practicum.shareit.handler;
 
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.ZonedDateTime;
+
+@Setter
+@Getter
 public class ErrorResponse {
     String error;
     String description;
+    ZonedDateTime dateTime;
 
     public ErrorResponse(String error, String description) {
         this.error = error;
         this.description = description;
-    }
-
-    public String getError() {
-        return error;
-    }
-
-    public void setError(String error) {
-        this.error = error;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
+        dateTime = ZonedDateTime.now();
     }
 }
