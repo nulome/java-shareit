@@ -1,6 +1,6 @@
 package ru.practicum.shareit.booking.model;
 
-import lombok.Data;
+import lombok.*;
 import org.hibernate.annotations.Type;
 import ru.practicum.shareit.booking.StatusBooking;
 import ru.practicum.shareit.item.model.Item;
@@ -10,7 +10,11 @@ import javax.persistence.*;
 import java.time.ZonedDateTime;
 
 
-@Data
+@Getter
+@Setter
+@ToString
+@AllArgsConstructor
+@NoArgsConstructor
 @Entity
 @Table(name = "bookings")
 public class Booking {
@@ -25,9 +29,11 @@ public class Booking {
     private ZonedDateTime end;
     @ManyToOne
     @JoinColumn(name = "item_id")
+    @ToString.Exclude
     private Item item;
     @ManyToOne
     @JoinColumn(name = "booker_id")
+    @ToString.Exclude
     private User booker;
     @Enumerated(EnumType.STRING)
     private StatusBooking status;

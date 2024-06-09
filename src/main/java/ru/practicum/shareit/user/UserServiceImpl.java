@@ -2,7 +2,6 @@ package ru.practicum.shareit.user;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -18,15 +17,15 @@ import javax.persistence.EntityNotFoundException;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private final ModelMapper modelMapper;
+    private final UserMapper userMapper;
 
     @Override
     public UserResponse createUser(CreateUserRequestDto createUserRequestDto) {
         log.info("Получен запрос Post /users - {}", createUserRequestDto.getEmail());
-        User user = modelMapper.map(createUserRequestDto, User.class);
+        User user = userMapper.toUser(createUserRequestDto);
         user = userRepository.save(user);
 
-        return modelMapper.map(user, UserResponse.class);
+        return userMapper.toResponse(user);
     }
 
     @Override
@@ -34,17 +33,17 @@ public class UserServiceImpl implements UserService {
         log.info("Получен запрос Get /users/{}", userId);
         User user = userRepository.getUserById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Значение в базе не найдено user: " + userId));
-        return modelMapper.map(user, UserResponse.class);
+        return userMapper.toResponse(user);
     }
 
     @Override
     public UserResponse updateUser(UserRequestDto userRequestDto) {
         log.info("Получен запрос Put /users - {}", userRequestDto.getEmail());
-        UserDto userDto = modelMapper.map(userRequestDto, UserDto.class);
+        UserDto userDto = userMapper.toUserDto(userRequestDto);
 
-        User user = modelMapper.map(userDto, User.class);
+        User user = userMapper.toUser(userDto);
         user = userRepository.save(user);
-        return modelMapper.map(user, UserResponse.class);
+        return userMapper.toResponse(user);
     }
 
     @Override
@@ -57,7 +56,7 @@ public class UserServiceImpl implements UserService {
     public Page<UserResponse> getUsers(PageRequest pageRequest) {
         log.info("Получен запрос Get /users");
         Page<User> listUser = userRepository.findAll(pageRequest);
-        return listUser.map(user -> modelMapper.map(user, UserResponse.class));
+        return listUser.map(userMapper::toResponse);
     }
 
     @Override
@@ -66,7 +65,7 @@ public class UserServiceImpl implements UserService {
         patchUserUpdateByDto(userId, patchUserRequestDto);
 
         User user = userRepository.getReferenceById(userId);
-        return modelMapper.map(user, UserResponse.class);
+        return userMapper.toResponse(user);
     }
 
     private void patchUserUpdateByDto(Integer userId, PatchUserRequestDto patchUserRequestDto) {

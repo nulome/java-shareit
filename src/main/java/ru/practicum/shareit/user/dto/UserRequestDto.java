@@ -14,6 +14,6 @@ public class UserRequestDto {
     private String name;
     @NotNull
     @Email
-    @Size(max = 155)
+    @Size(max = 256)
     private String email;
 }

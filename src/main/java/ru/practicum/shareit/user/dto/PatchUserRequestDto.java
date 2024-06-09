@@ -9,7 +9,7 @@ import javax.validation.constraints.Size;
 public class PatchUserRequestDto {
     @Size(max = 255)
     private String name;
-    @Size(max = 155)
+    @Size(max = 256)
     @Email
     private String email;
 }

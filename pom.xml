@@ -17,7 +17,7 @@
 
 	<properties>
 		<java.version>11</java.version>
-		<model.mapper.version>3.2.0</model.mapper.version>
+		<mapstruct.version>1.5.5.Final</mapstruct.version>
 	</properties>
 
 	<dependencies>
@@ -64,10 +64,21 @@
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.modelmapper</groupId>
-			<artifactId>modelmapper</artifactId>
-			<version>${model.mapper.version}</version>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>${mapstruct.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct-processor</artifactId>
+			<version>${mapstruct.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok-mapstruct-binding</artifactId>
+			<version>0.2.0</version>
+		</dependency>
+
 
 		<dependency>
 			<groupId>org.projectlombok</groupId>

@@ -2,10 +2,8 @@ package ru.practicum.shareit.booking;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.dto.BookingDto;
-import ru.practicum.shareit.booking.dto.BookingMapper;
 import ru.practicum.shareit.booking.dto.BookingResponse;
 import ru.practicum.shareit.booking.dto.CreateBookingRequestDto;
 import ru.practicum.shareit.booking.model.Booking;
@@ -33,7 +31,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final ItemRepository itemRepository;
     private final UserRepository userRepository;
-    private final ModelMapper modelMapper;
+    private final BookingMapper bookingMapper;
 
 
     @Override
@@ -45,13 +43,11 @@ public class BookingServiceImpl implements BookingService {
         Item item = checkItemInDB(itemId);
         checkAvailabilityBookingItem(item, userId, itemId);
 
-        BookingDto bookingDto = BookingMapper.toBookingDto(createBookingRequestDto);
-        bookingDto.setBooker(user);
-        bookingDto.setItem(item);
+        BookingDto bookingDto = bookingMapper.toBookingDto(createBookingRequestDto, user, item);
 
-        Booking booking = modelMapper.map(bookingDto, Booking.class);
+        Booking booking = bookingMapper.toBooking(bookingDto);
         booking = bookingRepository.save(booking);
-        return BookingMapper.toBookingResponse(booking);
+        return bookingMapper.toBookingResponse(booking);
     }
 
     @Override
@@ -60,7 +56,7 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = checkBookingInDB(bookingId);
         verificationAccessCreateUserOrBooker(userId, booking);
 
-        return BookingMapper.toBookingResponse(booking);
+        return bookingMapper.toBookingResponse(booking);
     }
 
     @Override
@@ -71,7 +67,7 @@ public class BookingServiceImpl implements BookingService {
             throw new IllegalArgumentException("Не доступно изменение статуса Booking " + bookingId + " для User: " + userId);
         }
         updateStatusBooking(bookingId, approved, booking);
-        return BookingMapper.toBookingResponse(booking);
+        return bookingMapper.toBookingResponse(booking);
     }
 
     @Override
@@ -80,7 +76,7 @@ public class BookingServiceImpl implements BookingService {
         checkGetUserInDataBase(userId);
         List<Booking> bookingList = getBookingsByState(userId, parseStringToState(state));
         return bookingList.stream()
-                .map(BookingMapper::toBookingResponse)
+                .map(bookingMapper::toBookingResponse)
                 .collect(Collectors.toList());
     }
 
@@ -90,7 +86,7 @@ public class BookingServiceImpl implements BookingService {
         checkGetUserInDataBase(userId);
         List<Booking> bookingList = getBookingsByOwner(userId, parseStringToState(state));
         return bookingList.stream()
-                .map(BookingMapper::toBookingResponse)
+                .map(bookingMapper::toBookingResponse)
                 .collect(Collectors.toList());
     }
 
@@ -150,7 +146,7 @@ public class BookingServiceImpl implements BookingService {
             case FUTURE:
                 return bookingRepository.getBookingsByOwnerFuture(userId, ZonedDateTime.now());
             default:
-                return bookingRepository.getBookingsByOwnerItemAndStatus(userId, state.toString());
+                return bookingRepository.getBookingsByOwnerItemAndStatus(userId, state);
         }
     }
 

@@ -2,14 +2,13 @@ package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.BookingRepository;
 import ru.practicum.shareit.booking.StatusBooking;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.handler.CustomValueException;
 import ru.practicum.shareit.handler.UnknownValueException;
-import ru.practicum.shareit.item.commentDto.CommentMapper;
+import ru.practicum.shareit.item.commentDto.CommentDto;
 import ru.practicum.shareit.item.commentDto.CommentResponse;
 import ru.practicum.shareit.item.commentDto.CreateCommentRequestDto;
 import ru.practicum.shareit.item.dto.*;
@@ -34,19 +33,18 @@ public class ItemServiceImpl implements ItemService {
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
     private final CommentRepository commentRepository;
-    private final ModelMapper modelMapper;
+    private final ItemMapper itemMapper;
 
     @Override
     public ItemResponse createItem(Integer userId, CreateItemRequestDto createItemRequestDto) {
         log.info("Получен запрос Post /items - {} пользователя {}", createItemRequestDto.getName(), userId);
         User user = userRepository.getUserById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Значение в базе не найдено user: " + userId));
-        ItemDto itemDto = modelMapper.map(createItemRequestDto, ItemDto.class);
-        itemDto.setOwner(user);
+        ItemDto itemDto = itemMapper.toItemDto(createItemRequestDto, user);
 
-        Item item = modelMapper.map(itemDto, Item.class);
+        Item item = itemMapper.toItem(itemDto);
         item = itemRepository.save(item);
-        return modelMapper.map(item, ItemResponse.class);
+        return itemMapper.toItemResponse(item);
     }
 
 
@@ -54,7 +52,7 @@ public class ItemServiceImpl implements ItemService {
     public ItemWithDateBookingResponse readItem(int userId, Integer itemId) {
         log.info("Получен запрос Get /items/{}", itemId);
         Item item = checkItemInDB(itemId);
-        ItemWithDateBookingResponse itemResponse = ItemMapper.toItemDto(item);
+        ItemWithDateBookingResponse itemResponse = itemMapper.toItemWithDateBookingResponse(item);
         List<Booking> bookingList = new ArrayList<>();
         if (userId == item.getOwner().getId()) {
             bookingList = bookingRepository.findAllByItemIdAndStatusOrderByStartDesc(itemId, StatusBooking.APPROVED);
@@ -65,7 +63,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemResponse updateItem(Integer userId, ItemRequestDto itemRequestDto) {
         log.info("Получен запрос Put /items - {} пользователя {}", itemRequestDto.getName(), userId);
-        ItemDto itemDto = modelMapper.map(itemRequestDto, ItemDto.class);
+        ItemDto itemDto = itemMapper.toItemDto(itemRequestDto);
         Item item = checkItemInDB(itemDto.getId());
         verificationOfCreator(userId, item);
         itemDto.setOwner(item.getOwner());
@@ -73,9 +71,9 @@ public class ItemServiceImpl implements ItemService {
             itemDto.setRequest(item.getRequest());
         }
 
-        item = modelMapper.map(itemDto, Item.class);
+        item = itemMapper.toItem(itemDto);
         item = itemRepository.save(item);
-        return modelMapper.map(item, ItemResponse.class);
+        return itemMapper.toItemResponse(item);
     }
 
     @Override
@@ -91,9 +89,9 @@ public class ItemServiceImpl implements ItemService {
     public List<ItemWithDateBookingResponse> getItems(int userId) {
         log.info("Получен запрос Get /items пользователя {}", userId);
         List<Item> listItem = itemRepository.findAllByOwnerIdOrderById(userId);
-        List<Booking> bookingList = bookingRepository.getBookingsByOwnerItemAndStatus(userId, StatusBooking.APPROVED.toString());
+        List<Booking> bookingList = bookingRepository.getBookingsByOwnerItemAndStatus(userId, StatusBooking.APPROVED);
         List<ItemWithDateBookingResponse> listResponse = listItem.stream()
-                .map(ItemMapper::toItemDto)
+                .map(itemMapper::toItemWithDateBookingResponse)
                 .collect(Collectors.toList());
 
         for (ItemWithDateBookingResponse item : listResponse) {
@@ -106,18 +104,17 @@ public class ItemServiceImpl implements ItemService {
         return listResponse;
     }
 
-
     @Override
     public ItemResponse changeItem(Integer userId, Integer itemId, PatchItemRequestDto patchItemRequestDto) {
         log.info("Получен запрос Patch /items/{} пользователя {}", itemId, userId);
         Item item = checkItemInDB(itemId);
         verificationOfCreator(userId, item);
-        ItemDto itemDto = modelMapper.map(item, ItemDto.class);
+        ItemDto itemDto = itemMapper.toItemDto(item);
 
         changeByPatchDto(itemDto, patchItemRequestDto);
-        item = modelMapper.map(itemDto, Item.class);
+        item = itemMapper.toItem(itemDto);
         item = itemRepository.save(item);
-        return modelMapper.map(item, ItemResponse.class);
+        return itemMapper.toItemResponse(item);
     }
 
     @Override
@@ -128,7 +125,7 @@ public class ItemServiceImpl implements ItemService {
         }
         List<Item> itemList = itemRepository.findItemsByTextSearch(text, text);
         return itemList.stream()
-                .map(item -> modelMapper.map(item, ItemResponse.class))
+                .map(itemMapper::toItemResponse)
                 .collect(Collectors.toList());
     }
 
@@ -136,12 +133,11 @@ public class ItemServiceImpl implements ItemService {
     public CommentResponse createComment(int userId, Integer itemId, CreateCommentRequestDto createCommentRequestDto) {
         log.info("Получен запрос POST /items/{}/comment от User {}", itemId, userId);
         Booking booking = checkAppropriateBookingInDB(userId, itemId);
-        Comment comment = modelMapper.map(createCommentRequestDto, Comment.class);
-        comment.setCreated(ZonedDateTime.now());
-        comment.setItem(booking.getItem());
-        comment.setAuthor(booking.getBooker());
+        CommentDto commentDto = itemMapper.toCommentDto(createCommentRequestDto, booking.getBooker(), booking.getItem());
+
+        Comment comment = itemMapper.toComment(commentDto);
         comment = commentRepository.save(comment);
-        return CommentMapper.toCommentDto(comment);
+        return itemMapper.toCommentResponse(comment);
     }
 
 
@@ -173,7 +169,6 @@ public class ItemServiceImpl implements ItemService {
         Booking bookingNext = null;
         if (bookingList.size() == 1) {
             bookingLast = bookingList.get(0);
-//            bookingNext = bookingList.get(0);
         } else {
             ZonedDateTime nowTime = ZonedDateTime.now();
             for (Booking booking : bookingList) {
@@ -188,8 +183,8 @@ public class ItemServiceImpl implements ItemService {
             }
         }
 
-        item.setLastBooking(bookingLast == null ? null : modelMapper.map(bookingLast, InfoBookingByItemDto.class));
-        item.setNextBooking(bookingNext == null ? null : modelMapper.map(bookingNext, InfoBookingByItemDto.class));
+        item.setLastBooking(bookingLast == null ? null : itemMapper.toInfoBookingByItemDto(bookingLast));
+        item.setNextBooking(bookingNext == null ? null : itemMapper.toInfoBookingByItemDto(bookingNext));
         return item;
     }
 
