@@ -1,31 +1,26 @@
 package ru.practicum.shareit.item;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.user.model.User;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
-public interface ItemRepository {
-    Item createItem(Item item);
+@Repository
+public interface ItemRepository extends JpaRepository<Item, Integer> {
 
-    Item updateItem(Item item);
+    Optional<Item> getItemById(int id);
 
-    void deleteItem(Integer itemId);
+    List<Item> findAllByOwnerIdOrderById(int id);
 
-    List<Item> getItems(User user);
+    @Query("select i " +
+            "from Item as i " +
+            "where UPPER(i.name) like UPPER(CONCAT('%', ?1, '%')) " +
+            "OR UPPER(i.description) like UPPER(CONCAT('%', ?2, '%')) " +
+            "AND i.available = TRUE ")
+    List<Item> findItemsByTextSearch(String text, String text2);
 
-    Item getItem(Integer itemId);
 
-    List<Item> getItemByTextSearch(String text);
-
-    static Item createItemBuilder(ResultSet rs) throws SQLException {
-        return Item.builder()
-                .id(rs.getInt("item_id"))
-                .name(rs.getString("item_name"))
-                .description(rs.getString("description"))
-                .available(rs.getBoolean("available"))
-                .build();
-    }
 }

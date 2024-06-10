@@ -1,23 +1,25 @@
 package ru.practicum.shareit.item;
 
-import org.springframework.validation.annotation.Validated;
-import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.commentDto.CommentResponse;
+import ru.practicum.shareit.item.commentDto.CreateCommentRequestDto;
+import ru.practicum.shareit.item.dto.*;
 
 import java.util.List;
 
-@Validated
 public interface ItemService {
-    ItemDto createItem(Integer userId, ItemDto itemDto);
+    ItemResponse createItem(Integer userId, CreateItemRequestDto createItemRequestDto);
 
-    ItemDto updateItem(Integer userId, ItemDto itemDto);
+    ItemWithDateBookingResponse readItem(int userId, Integer itemId);
 
-    ItemDto deleteItem(Integer userId, Integer itemId);
+    ItemResponse updateItem(Integer userId, ItemRequestDto itemRequestDto);
 
-    List<ItemDto> getItems(Integer userId);
+    void deleteItem(Integer userId, Integer itemId);
 
-    ItemDto getItem(Integer itemId);
+    List<ItemWithDateBookingResponse> getItems(int userId);
 
-    ItemDto changeItem(Integer userId, Integer itemId, ItemDto itemDto);
+    ItemResponse changeItem(Integer userId, Integer itemId, PatchItemRequestDto patchItemRequestDto);
 
-    List<ItemDto> getItemByTextSearch(String text);
+    List<ItemResponse> getItemsByTextSearch(String text);
+
+    CommentResponse createComment(int userId, Integer itemId, CreateCommentRequestDto createCommentRequestDto);
 }

@@ -2,16 +2,24 @@ package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
+import ru.practicum.shareit.booking.BookingRepository;
+import ru.practicum.shareit.booking.StatusBooking;
+import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.handler.CustomValueException;
 import ru.practicum.shareit.handler.UnknownValueException;
-import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.dto.ItemMapper;
+import ru.practicum.shareit.item.commentDto.CommentDto;
+import ru.practicum.shareit.item.commentDto.CommentResponse;
+import ru.practicum.shareit.item.commentDto.CreateCommentRequestDto;
+import ru.practicum.shareit.item.dto.*;
+import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
 
+import javax.persistence.EntityNotFoundException;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,85 +31,125 @@ public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
     private final UserRepository userRepository;
-    private final ModelMapper modelMapper;
+    private final BookingRepository bookingRepository;
+    private final CommentRepository commentRepository;
+    private final ItemMapper itemMapper;
 
     @Override
-    public ItemDto createItem(Integer userId, ItemDto itemDto) {
-        log.info("Получен запрос Post /items - {} пользователя {}", itemDto.getName(), userId);
-        User user = checkAndReceiptUserInDataBase(userId);
-        Item item = ItemMapper.toItem(itemDto);
-        item.setOwner(user);
-        item = itemRepository.createItem(item);
-        return ItemMapper.toItemDto(item);
+    public ItemResponse createItem(Integer userId, CreateItemRequestDto createItemRequestDto) {
+        log.info("Получен запрос Post /items - {} пользователя {}", createItemRequestDto.getName(), userId);
+        User user = userRepository.getUserById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Значение в базе не найдено user: " + userId));
+        ItemDto itemDto = itemMapper.toItemDto(createItemRequestDto, user);
+
+        Item item = itemMapper.toItem(itemDto);
+        item = itemRepository.save(item);
+        return itemMapper.toItemResponse(item);
     }
 
-    @Override
-    public ItemDto updateItem(Integer userId, ItemDto itemDto) {
-        log.info("Получен запрос Put /items - {} пользователя {}", itemDto.getName(), userId);
-        Item item = ItemMapper.toItem(itemDto);
-        checkAndReceiptItemInDataBase(item.getId());
-        verificationOfCreator(userId, item);
-        item = itemRepository.updateItem(item);
-        return ItemMapper.toItemDto(item);
-    }
 
     @Override
-    public ItemDto deleteItem(Integer userId, Integer itemId) {
-        log.info("Получен запрос Delete /items/{} пользователя {}", itemId, userId);
-        Item item = checkAndReceiptItemInDataBase(itemId);
-        verificationOfCreator(userId, item);
-        itemRepository.deleteItem(itemId);
-        return ItemMapper.toItemDto(item);
-    }
-
-    @Override
-    public List<ItemDto> getItems(Integer userId) {
-        log.info("Получен запрос Get /items пользователя {}", userId);
-        User user = checkAndReceiptUserInDataBase(userId);
-        List<Item> itemList = itemRepository.getItems(user);
-        return itemList.stream()
-                .map(ItemMapper::toItemDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public ItemDto getItem(Integer itemId) {
+    public ItemWithDateBookingResponse readItem(int userId, Integer itemId) {
         log.info("Получен запрос Get /items/{}", itemId);
-        Item item = checkAndReceiptItemInDataBase(itemId);
-        return ItemMapper.toItemDto(item);
+        Item item = checkItemInDB(itemId);
+        ItemWithDateBookingResponse itemResponse = itemMapper.toItemWithDateBookingResponse(item);
+        List<Booking> bookingList = new ArrayList<>();
+        if (userId == item.getOwner().getId()) {
+            bookingList = bookingRepository.findAllByItemIdAndStatusOrderByStartDesc(itemId, StatusBooking.APPROVED);
+        }
+        return updateItemToListBooking(bookingList, itemResponse);
     }
 
     @Override
-    public ItemDto changeItem(Integer userId, Integer itemId, ItemDto itemDto) {
-        log.info("Получен запрос Patch /items/{} пользователя {}", itemId, userId);
-        Item item = checkAndReceiptItemInDataBase(itemId);
+    public ItemResponse updateItem(Integer userId, ItemRequestDto itemRequestDto) {
+        log.info("Получен запрос Put /items - {} пользователя {}", itemRequestDto.getName(), userId);
+        ItemDto itemDto = itemMapper.toItemDto(itemRequestDto);
+        Item item = checkItemInDB(itemDto.getId());
         verificationOfCreator(userId, item);
-        changeItemByDto(item, itemDto);
-        item = itemRepository.updateItem(item);
-        return ItemMapper.toItemDto(item);
+        itemDto.setOwner(item.getOwner());
+        if (item.getRequest() != null) {
+            itemDto.setRequest(item.getRequest());
+        }
+
+        item = itemMapper.toItem(itemDto);
+        item = itemRepository.save(item);
+        return itemMapper.toItemResponse(item);
     }
 
     @Override
-    public List<ItemDto> getItemByTextSearch(String text) {
+    public void deleteItem(Integer userId, Integer itemId) {
+        log.info("Получен запрос Delete /items/{} пользователя {}", itemId, userId);
+        Item item = itemRepository.getReferenceById(itemId);
+        verificationOfCreator(userId, item);
+
+        itemRepository.deleteById(itemId);
+    }
+
+    @Override
+    public List<ItemWithDateBookingResponse> getItems(int userId) {
+        log.info("Получен запрос Get /items пользователя {}", userId);
+        List<Item> listItem = itemRepository.findAllByOwnerIdOrderById(userId);
+        List<Booking> bookingList = bookingRepository.getBookingsByOwnerItemAndStatus(userId, StatusBooking.APPROVED);
+        List<ItemWithDateBookingResponse> listResponse = listItem.stream()
+                .map(itemMapper::toItemWithDateBookingResponse)
+                .collect(Collectors.toList());
+
+        for (ItemWithDateBookingResponse item : listResponse) {
+            int itemId = item.getId();
+            List<Booking> bookingFilter = bookingList.stream()
+                    .filter(booking -> booking.getItem().getId() == itemId)
+                    .collect(Collectors.toList());
+            updateItemToListBooking(bookingFilter, item);
+        }
+        return listResponse;
+    }
+
+    @Override
+    public ItemResponse changeItem(Integer userId, Integer itemId, PatchItemRequestDto patchItemRequestDto) {
+        log.info("Получен запрос Patch /items/{} пользователя {}", itemId, userId);
+        Item item = checkItemInDB(itemId);
+        verificationOfCreator(userId, item);
+        ItemDto itemDto = itemMapper.toItemDto(item);
+
+        changeByPatchDto(itemDto, patchItemRequestDto);
+        item = itemMapper.toItem(itemDto);
+        item = itemRepository.save(item);
+        return itemMapper.toItemResponse(item);
+    }
+
+    @Override
+    public List<ItemResponse> getItemsByTextSearch(String text) {
         log.info("Получен запрос Get /search?text={}", text);
         if (text.isBlank()) {
             return Collections.emptyList();
         }
-        List<Item> itemList = itemRepository.getItemByTextSearch(text);
+        List<Item> itemList = itemRepository.findItemsByTextSearch(text, text);
         return itemList.stream()
-                .map(ItemMapper::toItemDto)
+                .map(itemMapper::toItemResponse)
                 .collect(Collectors.toList());
     }
 
-    private void changeItemByDto(Item item, ItemDto itemDto) {
-        if (itemDto.getName() != null) {
-            item.setName(itemDto.getName());
+    @Override
+    public CommentResponse createComment(int userId, Integer itemId, CreateCommentRequestDto createCommentRequestDto) {
+        log.info("Получен запрос POST /items/{}/comment от User {}", itemId, userId);
+        Booking booking = checkAppropriateBookingInDB(userId, itemId);
+        CommentDto commentDto = itemMapper.toCommentDto(createCommentRequestDto, booking.getBooker(), booking.getItem());
+
+        Comment comment = itemMapper.toComment(commentDto);
+        comment = commentRepository.save(comment);
+        return itemMapper.toCommentResponse(comment);
+    }
+
+
+    private void changeByPatchDto(ItemDto itemDto, PatchItemRequestDto patchItemRequestDto) {
+        if (patchItemRequestDto.getName() != null) {
+            itemDto.setName(patchItemRequestDto.getName());
         }
-        if (itemDto.getDescription() != null) {
-            item.setDescription(itemDto.getDescription());
+        if (patchItemRequestDto.getDescription() != null) {
+            itemDto.setDescription(patchItemRequestDto.getDescription());
         }
-        if (itemDto.getAvailable() != null && itemDto.getAvailable() != item.getAvailable()) {
-            item.setAvailable(itemDto.getAvailable());
+        if (patchItemRequestDto.getAvailable() != null) {
+            itemDto.setAvailable(patchItemRequestDto.getAvailable());
         }
     }
 
@@ -113,23 +161,42 @@ public class ItemServiceImpl implements ItemService {
         }
     }
 
-    private Item checkAndReceiptItemInDataBase(Integer itemId) {
-        log.trace("Проверка Item: {} в базе", itemId);
-        try {
-            return itemRepository.getItem(itemId);
-        } catch (EmptyResultDataAccessException e) {
-            log.error("Ошибка в запросе к базе данных. Не найдено значение по itemId: {} \n {}", itemId, e.getMessage());
-            throw new UnknownValueException("Передан не верный itemId: " + itemId);
+    private ItemWithDateBookingResponse updateItemToListBooking(List<Booking> bookingList, ItemWithDateBookingResponse item) {
+        if (bookingList == null || bookingList.isEmpty()) {
+            return item;
         }
+        Booking bookingLast = null;
+        Booking bookingNext = null;
+        if (bookingList.size() == 1) {
+            bookingLast = bookingList.get(0);
+        } else {
+            ZonedDateTime nowTime = ZonedDateTime.now();
+            for (Booking booking : bookingList) {
+                if (booking.getEnd().isBefore(nowTime)) {
+                    bookingLast = bookingLast == null ? booking :
+                            bookingLast.getEnd().isBefore(booking.getEnd()) ? booking : bookingLast;
+                }
+                if (booking.getStart().isAfter(nowTime)) {
+                    bookingNext = bookingNext == null ? booking :
+                            bookingNext.getStart().isAfter(booking.getStart()) ? booking : bookingNext;
+                }
+            }
+        }
+
+        item.setLastBooking(bookingLast == null ? null : itemMapper.toInfoBookingByItemDto(bookingLast));
+        item.setNextBooking(bookingNext == null ? null : itemMapper.toInfoBookingByItemDto(bookingNext));
+        return item;
     }
 
-    private User checkAndReceiptUserInDataBase(Integer userId) {
-        log.trace("Проверка User: {} в базе", userId);
-        try {
-            return userRepository.getUser(userId);
-        } catch (EmptyResultDataAccessException e) {
-            log.error("Ошибка в запросе к базе данных. Не найдено значение по userId: {} \n {}", userId, e.getMessage());
-            throw new UnknownValueException("Передан не верный userId: " + userId);
-        }
+    private Item checkItemInDB(int itemId) {
+        return itemRepository.getItemById(itemId)
+                .orElseThrow(() -> new EntityNotFoundException("Значение в базе не найдено для item: " + itemId));
+    }
+
+    private Booking checkAppropriateBookingInDB(int userId, int itemId) {
+        return bookingRepository.getBookingByBookerIdAndItemIdAndEndBeforeAndStatus(userId, itemId,
+                        ZonedDateTime.now(), StatusBooking.APPROVED.toString())
+                .orElseThrow(() -> new CustomValueException("Завершенного бронирования для Item " + itemId +
+                        " по User " + userId + " - не найдено"));
     }
 }

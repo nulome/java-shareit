@@ -4,29 +4,27 @@ import lombok.*;
 import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.*;
-import java.util.List;
+import java.time.ZonedDateTime;
 
-@Builder
 @Getter
 @Setter
 @ToString
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "items")
-public class Item {
+@Table(name = "comments")
+public class Comment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
-    private String name;
-    private String description;
-    private Boolean available;
+    private String text;
     @ManyToOne
-    @ToString.Exclude
-    private User owner;
-    @Column(name = "request_id")
-    private Integer request;
-    @OneToMany
     @JoinColumn(name = "item_id")
-    private List<Comment> comments;
+    @ToString.Exclude
+    private Item item;
+    @ManyToOne
+    @JoinColumn(name = "author_id")
+    @ToString.Exclude
+    private User author;
+    private ZonedDateTime created;
 }

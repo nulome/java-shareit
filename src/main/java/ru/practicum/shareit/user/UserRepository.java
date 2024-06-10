@@ -1,27 +1,26 @@
 package ru.practicum.shareit.user;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 import ru.practicum.shareit.user.model.User;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.List;
+import java.util.Optional;
 
-public interface UserRepository {
-    User createUser(User user);
+@Repository
+public interface UserRepository extends JpaRepository<User, Integer> {
 
-    User updateUser(User user);
+    Optional<User> getUserById(int id);
 
-    void deleteUser(Integer userId);
+    @Modifying
+    @Query("update User u set u.name = :name where u.id = :id")
+    void updateName(@Param(value = "id") int id, @Param(value = "name") String name);
 
-    List<User> getUsers();
+    @Modifying
+    @Query("update User u set u.email = :email where u.id = :id")
+    void updateUserEmail(@Param(value = "id") int id, @Param(value = "email") String email);
 
-    User getUser(Integer id);
 
-    static User createUserBuilder(ResultSet rs) throws SQLException {
-        return User.builder()
-                .id(rs.getInt("user_id"))
-                .name(rs.getString("user_name"))
-                .email(rs.getString("email"))
-                .build();
-    }
 }
