@@ -5,7 +5,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.shareit.user.dto.*;
+import ru.practicum.shareit.user.dto.CreateUserRequestDto;
+import ru.practicum.shareit.user.dto.PatchUserRequestDto;
+import ru.practicum.shareit.user.dto.UserRequestDto;
+import ru.practicum.shareit.user.dto.UserResponse;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Max;
@@ -17,7 +20,7 @@ import java.util.List;
 @RequestMapping(path = "/users")
 public class UserController {
 
-    private final UserServiceImpl userService;
+    private final UserService userService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -50,7 +53,7 @@ public class UserController {
 
     @Transactional
     @PatchMapping("/{userId}")
-    public UserResponse changeUser(@PathVariable int userId, @RequestBody PatchUserRequestDto patchUserRequestDto) {
+    public UserResponse changeUser(@PathVariable int userId, @RequestBody @Valid PatchUserRequestDto patchUserRequestDto) {
         return userService.changeUser(userId, patchUserRequestDto);
     }
 

@@ -15,11 +15,11 @@ public interface ItemService {
 
     void deleteItem(Integer userId, Integer itemId);
 
-    List<ItemWithDateBookingResponse> getItems(int userId);
+    List<ItemWithDateBookingResponse> getItems(int userId, Integer from, Integer size);
 
     ItemResponse changeItem(Integer userId, Integer itemId, PatchItemRequestDto patchItemRequestDto);
 
-    List<ItemResponse> getItemsByTextSearch(String text);
+    List<ItemResponse> getItemsByTextSearch(String text, Integer from, Integer size);
 
     CommentResponse createComment(int userId, Integer itemId, CreateCommentRequestDto createCommentRequestDto);
 }

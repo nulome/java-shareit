@@ -1,6 +1,7 @@
 package ru.practicum.shareit.item.model;
 
 import lombok.*;
+import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.*;
@@ -24,8 +25,10 @@ public class Item {
     @ManyToOne
     @ToString.Exclude
     private User owner;
-    @Column(name = "request_id")
-    private Integer request;
+    @ManyToOne
+    @JoinColumn(name = "request_id")
+    @ToString.Exclude
+    private ItemRequest request;
     @OneToMany
     @JoinColumn(name = "item_id")
     private List<Comment> comments;

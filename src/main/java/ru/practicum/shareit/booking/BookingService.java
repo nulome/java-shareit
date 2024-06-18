@@ -13,7 +13,7 @@ public interface BookingService {
 
     BookingResponse changeBookingStatus(int userId, int bookingId, boolean approved);
 
-    List<BookingResponse> getBookingsByUser(int userId, String state);
+    List<BookingResponse> getBookingsByUser(int userId, String state, Integer from, Integer size);
 
-    List<BookingResponse> getBookingsByOwnerItem(int userId, String state);
+    List<BookingResponse> getBookingsByOwnerItem(int userId, String state, Integer from, Integer size);
 }

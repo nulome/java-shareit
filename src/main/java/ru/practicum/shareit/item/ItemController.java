@@ -46,13 +46,17 @@ public class ItemController {
     }
 
     @GetMapping
-    public List<ItemWithDateBookingResponse> getItems(@RequestHeader("X-Sharer-User-Id") int userId) {
-        return itemService.getItems(userId);
+    public List<ItemWithDateBookingResponse> getItems(@RequestHeader("X-Sharer-User-Id") int userId,
+                                                      @RequestParam(required = false) Integer from,
+                                                      @RequestParam(required = false) Integer size) {
+        return itemService.getItems(userId, from, size);
     }
 
     @GetMapping("/search")
-    public List<ItemResponse> getItemsByTextSearch(@RequestParam String text) {
-        return itemService.getItemsByTextSearch(text);
+    public List<ItemResponse> getItemsByTextSearch(@RequestParam String text,
+                                                   @RequestParam(required = false) Integer from,
+                                                   @RequestParam(required = false) Integer size) {
+        return itemService.getItemsByTextSearch(text, from, size);
     }
 
     @PatchMapping("/{itemId}")

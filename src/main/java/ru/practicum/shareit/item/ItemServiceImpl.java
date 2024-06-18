@@ -2,6 +2,8 @@ package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.BookingRepository;
 import ru.practicum.shareit.booking.StatusBooking;
@@ -14,6 +16,8 @@ import ru.practicum.shareit.item.commentDto.CreateCommentRequestDto;
 import ru.practicum.shareit.item.dto.*;
 import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.request.ItemRequestRepository;
+import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
 
@@ -33,6 +37,7 @@ public class ItemServiceImpl implements ItemService {
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
     private final CommentRepository commentRepository;
+    private final ItemRequestRepository itemRequestRepository;
     private final ItemMapper itemMapper;
 
     @Override
@@ -40,7 +45,11 @@ public class ItemServiceImpl implements ItemService {
         log.info("Получен запрос Post /items - {} пользователя {}", createItemRequestDto.getName(), userId);
         User user = userRepository.getUserById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Значение в базе не найдено user: " + userId));
-        ItemDto itemDto = itemMapper.toItemDto(createItemRequestDto, user);
+        ItemRequest itemRequest = null;
+        if (createItemRequestDto.getRequestId() != null) {
+            itemRequest = checkRequestInDB(createItemRequestDto.getRequestId());
+        }
+        ItemDto itemDto = itemMapper.toItemDto(createItemRequestDto, user, itemRequest);
 
         Item item = itemMapper.toItem(itemDto);
         item = itemRepository.save(item);
@@ -86,10 +95,12 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public List<ItemWithDateBookingResponse> getItems(int userId) {
+    public List<ItemWithDateBookingResponse> getItems(int userId, Integer from, Integer size) {
         log.info("Получен запрос Get /items пользователя {}", userId);
-        List<Item> listItem = itemRepository.findAllByOwnerIdOrderById(userId);
-        List<Booking> bookingList = bookingRepository.getBookingsByOwnerItemAndStatus(userId, StatusBooking.APPROVED);
+        Pageable pageable = createPageRequest(from, size);
+        List<Item> listItem = itemRepository.findAllByOwnerIdOrderById(userId, pageable).getContent();
+        List<Booking> bookingList = bookingRepository.getBookingsByOwnerItemAndStatus(
+                userId, StatusBooking.APPROVED, null).getContent();
         List<ItemWithDateBookingResponse> listResponse = listItem.stream()
                 .map(itemMapper::toItemWithDateBookingResponse)
                 .collect(Collectors.toList());
@@ -118,12 +129,13 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public List<ItemResponse> getItemsByTextSearch(String text) {
+    public List<ItemResponse> getItemsByTextSearch(String text, Integer from, Integer size) {
         log.info("Получен запрос Get /search?text={}", text);
         if (text.isBlank()) {
             return Collections.emptyList();
         }
-        List<Item> itemList = itemRepository.findItemsByTextSearch(text, text);
+        Pageable pageable = createPageRequest(from, size);
+        List<Item> itemList = itemRepository.findItemsByTextSearch(text, text, pageable).getContent();
         return itemList.stream()
                 .map(itemMapper::toItemResponse)
                 .collect(Collectors.toList());
@@ -140,6 +152,19 @@ public class ItemServiceImpl implements ItemService {
         return itemMapper.toCommentResponse(comment);
     }
 
+    private Pageable createPageRequest(Integer from, Integer size) {
+        if (from == null || size == null) {
+            return null;
+        }
+        if (size <= 0) {
+            throw new CustomValueException("Количество элементов на странице должно быть больше 0");
+        }
+        if (from < 0) {
+            throw new CustomValueException("Не допустимый индекс первого элемента: " + from);
+        }
+        int number = from / size;
+        return PageRequest.of(number, size);
+    }
 
     private void changeByPatchDto(ItemDto itemDto, PatchItemRequestDto patchItemRequestDto) {
         if (patchItemRequestDto.getName() != null) {
@@ -191,6 +216,11 @@ public class ItemServiceImpl implements ItemService {
     private Item checkItemInDB(int itemId) {
         return itemRepository.getItemById(itemId)
                 .orElseThrow(() -> new EntityNotFoundException("Значение в базе не найдено для item: " + itemId));
+    }
+
+    private ItemRequest checkRequestInDB(int requestId) {
+        return itemRequestRepository.getItemRequestById(requestId)
+                .orElseThrow(() -> new EntityNotFoundException("Значение в базе не найдено для request: " + requestId));
     }
 
     private Booking checkAppropriateBookingInDB(int userId, int itemId) {
