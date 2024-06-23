@@ -16,11 +16,13 @@ import ru.practicum.shareit.booking.dto.CreateBookingRequestDto;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.handler.BookingUnavailableException;
 import ru.practicum.shareit.handler.CustomValueException;
+import ru.practicum.shareit.handler.UnknownValueException;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
 
+import javax.persistence.EntityNotFoundException;
 import javax.validation.ValidationException;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
@@ -101,6 +103,19 @@ class BookingServiceImplTest {
     }
 
     @Test
+    void createBooking_whenBadRequestItemEmptyDB_thenThrows() {
+        CreateBookingRequestDto createBookingRequestDto = random.nextObject(CreateBookingRequestDto.class);
+        createBookingRequestDto.setStart(LocalDateTime.now().minusHours(1));
+        createBookingRequestDto.setEnd(LocalDateTime.now().plusDays(1));
+        item.getOwner().setId(1);
+        when(userRepository.getUserById(userId)).thenReturn(Optional.of(user));
+        when(itemRepository.getItemById(createBookingRequestDto.getItemId())).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> bookingService.createBooking(userId, createBookingRequestDto));
+        verify(bookingRepository, never()).save(any(Booking.class));
+    }
+
+    @Test
     void createBooking_whenBadRequestAvailable_thenThrows() {
         CreateBookingRequestDto createBookingRequestDto = random.nextObject(CreateBookingRequestDto.class);
         createBookingRequestDto.setStart(LocalDateTime.now().minusHours(1));
@@ -135,6 +150,16 @@ class BookingServiceImplTest {
     }
 
     @Test
+    void readBooking_whenBadRequestNotCreateUserOrBooker_thenThrows() {
+        booking.getBooker().setId(userId);
+        booking.getItem().getOwner().setId(2);
+        when(bookingRepository.getBookingById(anyInt())).thenReturn(Optional.of(booking));
+
+        assertThrows(UnknownValueException.class, () -> bookingService.readBooking(3, 1));
+        verify(bookingMapper, never()).toBookingResponse(any(Booking.class));
+    }
+
+    @Test
     void changeBookingStatus_whenRightRequestRejected_thenVerifyMethod() {
         booking.getItem().getOwner().setId(userId);
         booking.setStatus(StatusBooking.WAITING);
@@ -159,6 +184,15 @@ class BookingServiceImplTest {
     }
 
     @Test
+    void changeBookingStatus_whenBadRequestNotOwner_thenThrows() {
+        booking.getItem().getOwner().setId(userId);
+        when(bookingRepository.getBookingById(anyInt())).thenReturn(Optional.of(booking));
+
+        assertThrows(IllegalArgumentException.class, () -> bookingService.changeBookingStatus(2, 1, false));
+        verify(bookingMapper, never()).toBookingResponse(any(Booking.class));
+    }
+
+    @Test
     void changeBookingStatus_whenBadRequestStatus_thenThrows() {
         booking.getItem().getOwner().setId(userId);
         booking.setStatus(StatusBooking.REJECTED);
@@ -169,7 +203,7 @@ class BookingServiceImplTest {
     }
 
     @Test
-    void getBookingsByUser_whenRightRequest_thenVerifyMethod() {
+    void getBookingsByUser_whenRightRequestCurrent_thenVerifyMethod() {
         Page<Booking> page = new PageImpl<>(new ArrayList<>(List.of(booking)), PageRequest.of(0, 2), 1);
         when(userRepository.getUserById(userId)).thenReturn(Optional.of(user));
         when(bookingRepository.findAllByBookerIdAndStartBeforeAndEndAfterOrderByStartDesc(anyInt(),
@@ -179,6 +213,32 @@ class BookingServiceImplTest {
         bookingService.getBookingsByUser(userId, "CURRENT", 0, 2);
         verify(bookingRepository).findAllByBookerIdAndStartBeforeAndEndAfterOrderByStartDesc(anyInt(),
                 any(ZonedDateTime.class), any(ZonedDateTime.class), any(Pageable.class));
+    }
+
+    @Test
+    void getBookingsByUser_whenRightRequestPast_thenVerifyMethod() {
+        Page<Booking> page = new PageImpl<>(new ArrayList<>(List.of(booking)), PageRequest.of(0, 2), 1);
+        when(userRepository.getUserById(userId)).thenReturn(Optional.of(user));
+        when(bookingRepository.findAllByBookerIdAndEndBeforeOrderByStartDesc(anyInt(),
+                any(ZonedDateTime.class), any(Pageable.class))).thenReturn(page);
+        when(bookingMapper.toBookingResponse(any(Booking.class))).thenReturn(bookingResponse);
+
+        bookingService.getBookingsByUser(userId, "PAST", 0, 2);
+        verify(bookingRepository).findAllByBookerIdAndEndBeforeOrderByStartDesc(anyInt(),
+                any(ZonedDateTime.class), any(Pageable.class));
+    }
+
+    @Test
+    void getBookingsByUser_whenRightRequestApprove_thenVerifyMethod() {
+        Page<Booking> page = new PageImpl<>(new ArrayList<>(List.of(booking)), PageRequest.of(0, 2), 1);
+        when(userRepository.getUserById(userId)).thenReturn(Optional.of(user));
+        when(bookingRepository.findAllByBookerIdAndStatusOrderByStartDesc(anyInt(),
+                any(StatusBooking.class), any(Pageable.class))).thenReturn(page);
+        when(bookingMapper.toBookingResponse(any(Booking.class))).thenReturn(bookingResponse);
+
+        bookingService.getBookingsByUser(userId, "APPROVED", 0, 2);
+        verify(bookingRepository).findAllByBookerIdAndStatusOrderByStartDesc(anyInt(),
+                any(StatusBooking.class), any(Pageable.class));
     }
 
     @Test
@@ -213,11 +273,14 @@ class BookingServiceImplTest {
     }
 
     @Test
-    void getBookingsByOwnerItem_whenBadRequestPageable_thenThrows() {
+    void getBookingsByOwnerItem_whenRightRequestAll_thenVerifyMethod() {
         Page<Booking> page = new PageImpl<>(new ArrayList<>(List.of(booking)), PageRequest.of(0, 2), 1);
         when(userRepository.getUserById(userId)).thenReturn(Optional.of(user));
+        when(bookingRepository.getBookingsByOwnerItem(anyInt(), any(Pageable.class)))
+                .thenReturn(page);
+        when(bookingMapper.toBookingResponse(any(Booking.class))).thenReturn(bookingResponse);
 
-        assertThrows(CustomValueException.class, () -> bookingService.getBookingsByOwnerItem(userId, "FUTURE", -1, 2));
-        verify(bookingRepository, never()).getBookingsByOwnerFuture(anyInt(), any(ZonedDateTime.class), any(Pageable.class));
+        bookingService.getBookingsByOwnerItem(userId, "ALL", 0, 2);
+        verify(bookingRepository).getBookingsByOwnerItem(anyInt(), any(Pageable.class));
     }
 }

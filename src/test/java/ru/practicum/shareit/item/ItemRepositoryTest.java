@@ -35,15 +35,15 @@ class ItemRepositoryTest {
         User user1 = random.nextObject(User.class);
         user1.setId(userId1);
         userRepository.save(user1);
-        item = new Item(1, "NaMeSSearch", "DescriPtion", true, user1, null, null);
+        item = new Item(1, "NaMeSSearch", "DescriPtion", true, user1, null);
         itemRepository.save(item);
 
         User user2 = random.nextObject(User.class);
         user2.setId(userId2);
         userRepository.save(user2);
-        item = new Item(2, "NaSearCh", "DescriPtion", true, user2, null, null);
+        item = new Item(2, "NaSearCh", "DescriPtion", true, user2, null);
         itemRepository.save(item);
-        item = new Item(3, "Search", "Dessss", true, user2, null, null);
+        item = new Item(3, "Search", "Dessss", true, user2, null);
         itemRepository.save(item);
     }
 
@@ -65,7 +65,7 @@ class ItemRepositoryTest {
     @Test
     void findItemsByTextSearch_whenSearchText_thenResultThreeSize() {
         String search = "search";
-        List<Item> listActual = itemRepository.findItemsByTextSearch(search, search, null).getContent();
+        List<Item> listActual = itemRepository.findItemsByTextSearch(search, null).getContent();
 
         assertEquals(3, listActual.size());
     }
@@ -73,7 +73,7 @@ class ItemRepositoryTest {
     @Test
     void findItemsByTextSearch_whenSearchText_thenResultTwoSize() {
         String search = "description";
-        List<Item> listActual = itemRepository.findItemsByTextSearch(search, search, null).getContent();
+        List<Item> listActual = itemRepository.findItemsByTextSearch(search, null).getContent();
 
         assertEquals(2, listActual.size());
     }
@@ -81,7 +81,7 @@ class ItemRepositoryTest {
     @Test
     void findItemsByTextSearch_whenSearchText_thenResultEmpty() {
         String search = "findItemsByText";
-        List<Item> listActual = itemRepository.findItemsByTextSearch(search, search, null).getContent();
+        List<Item> listActual = itemRepository.findItemsByTextSearch(search, null).getContent();
 
         assertEquals(0, listActual.size());
     }

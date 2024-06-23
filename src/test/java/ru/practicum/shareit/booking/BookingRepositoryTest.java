@@ -43,7 +43,7 @@ class BookingRepositoryTest {
     void setUp() {
         User user = new User(1, "Names", "email@lol.com");
         userRepository.save(user);
-        Item item = new Item(1, "Names", "Desc", true, user, null, null);
+        Item item = new Item(1, "Names", "Desc", true, user, null);
         itemRepository.save(item);
 
         booking = new Booking(1, ZonedDateTime.now().minusDays(1), ZonedDateTime.now().plusDays(1),
@@ -64,7 +64,7 @@ class BookingRepositoryTest {
 
         user = new User(2, "Names", "email222@lol.com");
         userRepository.save(user);
-        item = new Item(2, "Names", "Desc2222", true, user, null, null);
+        item = new Item(2, "Names", "Desc2222", true, user, null);
         itemRepository.save(item);
         booking = new Booking(6, ZonedDateTime.now().plusDays(4), ZonedDateTime.now().plusDays(8),
                 item, user, StatusBooking.APPROVED);

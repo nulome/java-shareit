@@ -6,14 +6,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 import ru.practicum.shareit.booking.model.Booking;
 
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 
-@Repository
+
 public interface BookingRepository extends JpaRepository<Booking, Integer> {
 
     String SELECT_BOOKING_BY_BOOKER_SQL = "SELECT * FROM bookings b WHERE b.booker_id = ?1 AND b.item_id = ?2 " +

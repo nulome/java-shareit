@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static ru.practicum.shareit.booking.StatusBooking.*;
+import static ru.practicum.shareit.related.Constants.CONTROLLER_BOOKING_PATH;
 
 @Slf4j
 @Service
@@ -39,7 +40,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponse createBooking(int userId, CreateBookingRequestDto createBookingRequestDto) {
-        log.info("Получен запрос Post /bookings - booker: {}", userId);
+        log.info("Получен запрос Post " + CONTROLLER_BOOKING_PATH + " - booker: {}", userId);
         validationDateStartAndEnd(createBookingRequestDto);
         int itemId = createBookingRequestDto.getItemId();
         User user = checkGetUserInDataBase(userId);
@@ -55,7 +56,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponse readBooking(int userId, int bookingId) {
-        log.info("Получен запрос Get /bookings/{} от User {}", bookingId, userId);
+        log.info("Получен запрос Get " + CONTROLLER_BOOKING_PATH + "/{} от User {}", bookingId, userId);
         Booking booking = checkBookingInDB(bookingId);
         verificationAccessCreateUserOrBooker(userId, booking);
 
@@ -64,7 +65,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponse changeBookingStatus(int userId, int bookingId, boolean approved) {
-        log.info("Получен запрос PATCH /bookings/{}?approved={} from User {}", bookingId, approved, userId);
+        log.info("Получен запрос PATCH " + CONTROLLER_BOOKING_PATH + "/{}?approved={} from User {}", bookingId, approved, userId);
         Booking booking = checkBookingInDB(bookingId);
         if (booking.getItem().getOwner().getId() != userId) {
             throw new IllegalArgumentException("Не доступно изменение статуса Booking " + bookingId + " для User: " + userId);
@@ -75,7 +76,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public List<BookingResponse> getBookingsByUser(int userId, String state, Integer from, Integer size) {
-        log.info("Получен запрос GET /bookings?state={} от User {}", state, userId);
+        log.info("Получен запрос GET " + CONTROLLER_BOOKING_PATH + "?state={} от User {}", state, userId);
         checkGetUserInDataBase(userId);
         Pageable pageable = createPageRequest(from, size);
         List<Booking> bookingList = getBookingsByState(userId, parseStringToState(state), pageable).getContent();
@@ -86,7 +87,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public List<BookingResponse> getBookingsByOwnerItem(int userId, String state, Integer from, Integer size) {
-        log.info("Получен запрос GET /bookings/owner?state={} от OwnerItem {}", state, userId);
+        log.info("Получен запрос GET " + CONTROLLER_BOOKING_PATH + "/owner?state={} от OwnerItem {}", state, userId);
         checkGetUserInDataBase(userId);
         Pageable pageable = createPageRequest(from, size);
         List<Booking> bookingList = getBookingsByOwner(userId, parseStringToState(state), pageable).getContent();
@@ -98,12 +99,6 @@ public class BookingServiceImpl implements BookingService {
     private Pageable createPageRequest(Integer from, Integer size) {
         if (from == null || size == null) {
             return null;
-        }
-        if (size <= 0) {
-            throw new CustomValueException("Количество элементов на странице должно быть больше 0");
-        }
-        if (from < 0) {
-            throw new CustomValueException("Не допустимый индекс первого элемента: " + from);
         }
         int number = from / size;
         return PageRequest.of(number, size);

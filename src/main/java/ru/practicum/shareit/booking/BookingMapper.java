@@ -28,7 +28,8 @@ public abstract class BookingMapper {
     ItemMapper itemMapper;
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "booker", source = "user")
+    @Mapping(target = "booker", expression = "java(userMapper.toUserDto(user))")
+    @Mapping(target = "item", expression = "java(itemMapper.toItemDto(item))")
     @Mapping(target = "start", expression = "java(patchToZone(createBookingRequestDto.getStart()))")
     @Mapping(target = "end", expression = "java(patchToZone(createBookingRequestDto.getEnd()))")
     @Mapping(target = "status", constant = "WAITING")
@@ -40,6 +41,7 @@ public abstract class BookingMapper {
     @Mapping(target = "item", expression = "java(itemMapper.toItemResponse(booking.getItem()))")
     public abstract BookingResponse toBookingResponse(Booking booking);
 
+    @Mapping(target = "item", expression = "java(itemMapper.toItem(bookingDto.getItem()))")
     public abstract Booking toBooking(BookingDto bookingDto);
 
 

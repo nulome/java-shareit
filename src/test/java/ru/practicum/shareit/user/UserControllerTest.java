@@ -28,6 +28,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static ru.practicum.shareit.related.Constants.CONTROLLER_USER_PATH;
 
 @WebMvcTest(controllers = UserController.class)
 class UserControllerTest {
@@ -59,7 +60,7 @@ class UserControllerTest {
         when(userService.createUser(any(CreateUserRequestDto.class)))
                 .thenReturn(response);
 
-        mvc.perform(post("/users")
+        mvc.perform(post(CONTROLLER_USER_PATH)
                         .content(mapper.writeValueAsString(request))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -81,7 +82,7 @@ class UserControllerTest {
                 .thenReturn(new UserResponse());
 
         request.setEmail("user.com");
-        mvc.perform(post("/users")
+        mvc.perform(post(CONTROLLER_USER_PATH)
                         .content(mapper.writeValueAsString(request))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -91,7 +92,7 @@ class UserControllerTest {
 
         request.setEmail("user@user.com");
         request.setName("  ");
-        mvc.perform(post("/users")
+        mvc.perform(post(CONTROLLER_USER_PATH)
                         .content(mapper.writeValueAsString(request))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -106,7 +107,7 @@ class UserControllerTest {
         when(userService.readUser(userId))
                 .thenReturn(response);
 
-        mvc.perform(get("/users/1")
+        mvc.perform(get(CONTROLLER_USER_PATH + "/1")
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
@@ -126,7 +127,7 @@ class UserControllerTest {
         when(userService.getUsers(any(PageRequest.class)))
                 .thenReturn(page);
 
-        mvc.perform(get("/users")
+        mvc.perform(get(CONTROLLER_USER_PATH)
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
@@ -144,7 +145,7 @@ class UserControllerTest {
         when(userService.updateUser(userRequestDto))
                 .thenReturn(response);
 
-        mvc.perform(put("/users")
+        mvc.perform(put(CONTROLLER_USER_PATH)
                         .content(mapper.writeValueAsString(userRequestDto))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -162,7 +163,7 @@ class UserControllerTest {
         when(userService.changeUser(userId, patchUserRequestDto))
                 .thenReturn(response);
 
-        mvc.perform(patch("/users/1")
+        mvc.perform(patch(CONTROLLER_USER_PATH + "/1")
                         .content(mapper.writeValueAsString(patchUserRequestDto))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -180,7 +181,7 @@ class UserControllerTest {
         when(userService.changeUser(userId, patchUserRequestDto))
                 .thenReturn(response);
 
-        mvc.perform(patch("/users/1")
+        mvc.perform(patch(CONTROLLER_USER_PATH + "/1")
                         .content(mapper.writeValueAsString(patchUserRequestDto))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)

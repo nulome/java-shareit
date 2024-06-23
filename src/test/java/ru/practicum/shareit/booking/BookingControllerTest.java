@@ -25,6 +25,8 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static ru.practicum.shareit.related.Constants.CONTROLLER_BOOKING_PATH;
+import static ru.practicum.shareit.related.Constants.REQUEST_HEADER_USER_KEY;
 
 @WebMvcTest(controllers = BookingController.class)
 class BookingControllerTest {
@@ -57,10 +59,10 @@ class BookingControllerTest {
         when(bookingService.createBooking(userId, createBookingRequestDto))
                 .thenReturn(bookingResponse);
 
-        mvc.perform(post("/bookings")
+        mvc.perform(post(CONTROLLER_BOOKING_PATH)
                         .content(mapper.writeValueAsString(createBookingRequestDto))
                         .characterEncoding(StandardCharsets.UTF_8)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isCreated())
@@ -75,10 +77,10 @@ class BookingControllerTest {
         CreateBookingRequestDto createBookingRequestDto = new CreateBookingRequestDto(LocalDateTime.now().minusHours(1),
                 LocalDateTime.now().plusDays(4), 1);
 
-        mvc.perform(post("/bookings")
+        mvc.perform(post(CONTROLLER_BOOKING_PATH)
                         .content(mapper.writeValueAsString(createBookingRequestDto))
                         .characterEncoding(StandardCharsets.UTF_8)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
@@ -91,9 +93,9 @@ class BookingControllerTest {
     void readBooking_whenRightRequest_thenVerifyMethod() {
         when(bookingService.readBooking(userId, 1)).thenReturn(bookingResponse);
 
-        mvc.perform(get("/bookings/1")
+        mvc.perform(get(CONTROLLER_BOOKING_PATH + "/1")
                         .characterEncoding(StandardCharsets.UTF_8)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -108,9 +110,9 @@ class BookingControllerTest {
         when(bookingService.changeBookingStatus(anyInt(), anyInt(), anyBoolean()))
                 .thenReturn(bookingResponse);
 
-        mvc.perform(patch("/bookings/1?approved=TRUE")
+        mvc.perform(patch(CONTROLLER_BOOKING_PATH + "/1?approved=TRUE")
                         .characterEncoding(StandardCharsets.UTF_8)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -121,19 +123,33 @@ class BookingControllerTest {
 
     @Test
     @SneakyThrows
-    void getBookingsByUser_whenRightRequest_thenResponseHasSize() {
+    void getBookingsByUser_whenRightRequest_thenFailValidation() {
         List<BookingResponse> list = List.of(bookingResponse, bookingResponse);
-        when(bookingService.getBookingsByUser(userId, "ALL", null, null))
+        when(bookingService.getBookingsByUser(userId, "ALL", 0, 10))
                 .thenReturn(list);
 
-        mvc.perform(get("/bookings")
+        mvc.perform(get(CONTROLLER_BOOKING_PATH)
                         .characterEncoding(StandardCharsets.UTF_8)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", Matchers.hasSize(2)));
 
-        verify(bookingService).getBookingsByUser(userId, "ALL", null, null);
+        verify(bookingService).getBookingsByUser(userId, "ALL", 0, 10);
     }
+
+    @Test
+    @SneakyThrows
+    void getBookingsByOwnerItem_whenBadRequestPageable_thenResponseHasSize() {
+        mvc.perform(get(CONTROLLER_BOOKING_PATH + "/owner?from=-1&size=1")
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(bookingService, never()).getBookingsByUser(userId, "ALL", -1, 1);
+    }
+
 }

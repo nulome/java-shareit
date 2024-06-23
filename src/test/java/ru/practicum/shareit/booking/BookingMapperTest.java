@@ -18,19 +18,19 @@ class BookingMapperTest {
     }
 
     @Test
-    void toBookingDto() {
+    void toBookingDto_whenResponseNull_thenResultNull() {
         BookingDto booking = bookingMapper.toBookingDto(null, null, null);
         assertNull(booking);
     }
 
     @Test
-    void toBookingResponse() {
+    void toBookingResponse_whenResponseNull_thenResultNull() {
         BookingResponse booking = bookingMapper.toBookingResponse(null);
         assertNull(booking);
     }
 
     @Test
-    void toBooking() {
+    void toBooking_whenResponseNull_thenResultNull() {
         Booking booking = bookingMapper.toBooking(null);
         assertNull(booking);
     }

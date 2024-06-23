@@ -10,6 +10,8 @@ import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.EntityNotFoundException;
 
+import static ru.practicum.shareit.related.Constants.CONTROLLER_USER_PATH;
+
 
 @Slf4j
 @Service
@@ -21,7 +23,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse createUser(CreateUserRequestDto createUserRequestDto) {
-        log.info("Получен запрос Post /users - {}", createUserRequestDto.getEmail());
+        log.info("Получен запрос Post " + CONTROLLER_USER_PATH + " - {}", createUserRequestDto.getEmail());
         User user = userMapper.toUser(createUserRequestDto);
         user = userRepository.save(user);
 
@@ -30,7 +32,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse readUser(Integer userId) {
-        log.info("Получен запрос Get /users/{}", userId);
+        log.info("Получен запрос Get " + CONTROLLER_USER_PATH + "/{}", userId);
         User user = userRepository.getUserById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Значение в базе не найдено user: " + userId));
         return userMapper.toResponse(user);
@@ -38,7 +40,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse updateUser(UserRequestDto userRequestDto) {
-        log.info("Получен запрос Put /users - {}", userRequestDto.getEmail());
+        log.info("Получен запрос Put " + CONTROLLER_USER_PATH + " - {}", userRequestDto.getEmail());
         UserDto userDto = userMapper.toUserDto(userRequestDto);
 
         User user = userMapper.toUser(userDto);
@@ -48,20 +50,20 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(Integer userId) {
-        log.info("Получен запрос Delete /users/{}", userId);
+        log.info("Получен запрос Delete " + CONTROLLER_USER_PATH + "/{}", userId);
         userRepository.deleteById(userId);
     }
 
     @Override
     public Page<UserResponse> getUsers(PageRequest pageRequest) {
-        log.info("Получен запрос Get /users");
+        log.info("Получен запрос Get " + CONTROLLER_USER_PATH);
         Page<User> listUser = userRepository.findAll(pageRequest);
         return listUser.map(userMapper::toResponse);
     }
 
     @Override
     public UserResponse changeUser(Integer userId, PatchUserRequestDto patchUserRequestDto) {
-        log.info("Получен запрос Patch /users/{}", userId);
+        log.info("Получен запрос Patch " + CONTROLLER_USER_PATH + "/{}", userId);
         patchUserUpdateByDto(userId, patchUserRequestDto);
 
         User user = userRepository.getReferenceById(userId);
@@ -73,11 +75,11 @@ public class UserServiceImpl implements UserService {
             if (patchUserRequestDto.getName().isBlank()) {
                 throw new IllegalArgumentException("Поле Name не может быть пустым.");
             }
-            log.debug("Обновление имени в /users/{}", userId);
+            log.debug("Обновление имени в " + CONTROLLER_USER_PATH + "/{}", userId);
             userRepository.updateName(userId, patchUserRequestDto.getName());
         }
         if (patchUserRequestDto.getEmail() != null) {
-            log.debug("Обновление Email в /users/{}", userId);
+            log.debug("Обновление Email в " + CONTROLLER_USER_PATH + "/{}", userId);
             userRepository.updateUserEmail(userId, patchUserRequestDto.getEmail());
         }
     }

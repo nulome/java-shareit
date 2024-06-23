@@ -29,6 +29,8 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static ru.practicum.shareit.related.Constants.CONTROLLER_ITEM_PATH;
+import static ru.practicum.shareit.related.Constants.REQUEST_HEADER_USER_KEY;
 
 @WebMvcTest(controllers = ItemController.class)
 class ItemControllerTest {
@@ -66,10 +68,10 @@ class ItemControllerTest {
         when(itemService.createItem(userId, createItemRequestDto))
                 .thenReturn(itemResponse);
 
-        mvc.perform(post("/items")
+        mvc.perform(post(CONTROLLER_ITEM_PATH)
                         .content(mapper.writeValueAsString(createItemRequestDto))
                         .characterEncoding(StandardCharsets.UTF_8)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isCreated())
@@ -88,10 +90,10 @@ class ItemControllerTest {
         when(itemService.createItem(userId, createItemRequestDto))
                 .thenReturn(itemResponse);
 
-        mvc.perform(post("/items")
+        mvc.perform(post(CONTROLLER_ITEM_PATH)
                         .content(mapper.writeValueAsString(createItemRequestDto))
                         .characterEncoding(StandardCharsets.UTF_8)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
@@ -109,7 +111,7 @@ class ItemControllerTest {
 
         mvc.perform(get("/items/" + itemId)
                         .characterEncoding(StandardCharsets.UTF_8)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -123,18 +125,31 @@ class ItemControllerTest {
     @SneakyThrows
     void getItems_whenRightResponse_thenStatusOkWithJsonSizeOne() {
         List<ItemWithDateBookingResponse> listActual = List.of(itemWithDateBookingResponse);
-        when(itemService.getItems(userId, null, null))
+        when(itemService.getItems(userId, 0, 10))
                 .thenReturn(listActual);
 
-        mvc.perform(get("/items")
+        mvc.perform(get(CONTROLLER_ITEM_PATH)
                         .characterEncoding(StandardCharsets.UTF_8)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", Matchers.hasSize(1)));
 
-        verify(itemService).getItems(userId, null, null);
+        verify(itemService).getItems(userId, 0, 10);
+    }
+
+    @Test
+    @SneakyThrows
+    void getItems_whenBadRequestPageable_thenFailValidation() {
+        mvc.perform(get(CONTROLLER_ITEM_PATH + "?from=-1&size=1")
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(itemService, never()).getItems(userId, -1, 1);
     }
 
     @Test
@@ -142,18 +157,31 @@ class ItemControllerTest {
     void getItemsByTextSearch_whenRightResponse_thenStatusOkWithJsonSizeOne() {
         String search = "UGLD";
         List<ItemResponse> listActual = List.of(itemResponse);
-        when(itemService.getItemsByTextSearch(search, null, null))
+        when(itemService.getItemsByTextSearch(search, 0, 3))
                 .thenReturn(listActual);
 
-        mvc.perform(get("/items/search?text=" + search)
+        mvc.perform(get(CONTROLLER_ITEM_PATH + "/search?text=" + search + "&from=0&size=3")
                         .characterEncoding(StandardCharsets.UTF_8)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", Matchers.hasSize(1)));
 
-        verify(itemService).getItemsByTextSearch(search, null, null);
+        verify(itemService).getItemsByTextSearch(search, 0, 3);
+    }
+
+    @Test
+    @SneakyThrows
+    void getItemsByTextSearch_whenBadRequestPageable_thenFailValidation() {
+        mvc.perform(get(CONTROLLER_ITEM_PATH + "/search?text=next&from=0&size=0")
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(itemService, never()).getItemsByTextSearch("next", 0, 0);
     }
 
     @Test
@@ -169,10 +197,10 @@ class ItemControllerTest {
                     return itemResponse;
                 });
 
-        mvc.perform(patch("/items/1")
+        mvc.perform(patch(CONTROLLER_ITEM_PATH + "/1")
                         .content(mapper.writeValueAsString(patchItemRequestDto))
                         .characterEncoding(StandardCharsets.UTF_8)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -189,10 +217,10 @@ class ItemControllerTest {
         when(itemService.createComment(anyInt(), anyInt(), any(CreateCommentRequestDto.class)))
                 .thenReturn(commentResponse);
 
-        mvc.perform(post("/items/1/comment")
+        mvc.perform(post(CONTROLLER_ITEM_PATH + "/1/comment")
                         .content(mapper.writeValueAsString(createCommentRequestDto))
                         .characterEncoding(StandardCharsets.UTF_8)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -207,7 +235,7 @@ class ItemControllerTest {
     void createComment_thenBadRequestSharerUserId_whenStatusBadRequest() {
         CreateCommentRequestDto createCommentRequestDto = random.nextObject(CreateCommentRequestDto.class);
 
-        mvc.perform(post("/items/1/comment")
+        mvc.perform(post(CONTROLLER_ITEM_PATH + "/1/comment")
                         .content(mapper.writeValueAsString(createCommentRequestDto))
                         .characterEncoding(StandardCharsets.UTF_8)
                         .contentType(MediaType.APPLICATION_JSON)

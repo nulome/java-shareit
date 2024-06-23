@@ -12,12 +12,15 @@ import ru.practicum.shareit.handler.CustomValueException;
 import ru.practicum.shareit.handler.UnknownValueException;
 import ru.practicum.shareit.item.commentDto.CommentDto;
 import ru.practicum.shareit.item.commentDto.CommentResponse;
+import ru.practicum.shareit.item.commentDto.CommentShortDto;
 import ru.practicum.shareit.item.commentDto.CreateCommentRequestDto;
 import ru.practicum.shareit.item.dto.*;
 import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.request.ItemRequestMapper;
 import ru.practicum.shareit.request.ItemRequestRepository;
 import ru.practicum.shareit.request.model.ItemRequest;
+import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
 
@@ -26,7 +29,11 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
+
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
+import static ru.practicum.shareit.related.Constants.CONTROLLER_ITEM_PATH;
 
 @RequiredArgsConstructor
 @Service
@@ -39,10 +46,12 @@ public class ItemServiceImpl implements ItemService {
     private final CommentRepository commentRepository;
     private final ItemRequestRepository itemRequestRepository;
     private final ItemMapper itemMapper;
+    private final UserMapper userMapper;
+    private final ItemRequestMapper itemRequestMapper;
 
     @Override
     public ItemResponse createItem(Integer userId, CreateItemRequestDto createItemRequestDto) {
-        log.info("Получен запрос Post /items - {} пользователя {}", createItemRequestDto.getName(), userId);
+        log.info("Получен запрос Post " + CONTROLLER_ITEM_PATH + " - {} пользователя {}", createItemRequestDto.getName(), userId);
         User user = userRepository.getUserById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Значение в базе не найдено user: " + userId));
         ItemRequest itemRequest = null;
@@ -59,25 +68,27 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemWithDateBookingResponse readItem(int userId, Integer itemId) {
-        log.info("Получен запрос Get /items/{}", itemId);
+        log.info("Получен запрос Get " + CONTROLLER_ITEM_PATH + "/{}", itemId);
         Item item = checkItemInDB(itemId);
         ItemWithDateBookingResponse itemResponse = itemMapper.toItemWithDateBookingResponse(item);
         List<Booking> bookingList = new ArrayList<>();
         if (userId == item.getOwner().getId()) {
             bookingList = bookingRepository.findAllByItemIdAndStatusOrderByStartDesc(itemId, StatusBooking.APPROVED);
         }
-        return updateItemToListBooking(bookingList, itemResponse);
+        ItemWithDateBookingResponse itemWithDateBookingResponse = updateItemToListBooking(bookingList, itemResponse);
+        updateCommentsFromDB(List.of(itemWithDateBookingResponse));
+        return itemWithDateBookingResponse;
     }
 
     @Override
     public ItemResponse updateItem(Integer userId, ItemRequestDto itemRequestDto) {
-        log.info("Получен запрос Put /items - {} пользователя {}", itemRequestDto.getName(), userId);
+        log.info("Получен запрос Put " + CONTROLLER_ITEM_PATH + " - {} пользователя {}", itemRequestDto.getName(), userId);
         ItemDto itemDto = itemMapper.toItemDto(itemRequestDto);
         Item item = checkItemInDB(itemDto.getId());
         verificationOfCreator(userId, item);
-        itemDto.setOwner(item.getOwner());
+        itemDto.setOwner(userMapper.toUserDto(item.getOwner()));
         if (item.getRequest() != null) {
-            itemDto.setRequest(item.getRequest());
+            itemDto.setRequest(itemRequestMapper.toItemRequestResponse(item.getRequest()));
         }
 
         item = itemMapper.toItem(itemDto);
@@ -87,7 +98,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public void deleteItem(Integer userId, Integer itemId) {
-        log.info("Получен запрос Delete /items/{} пользователя {}", itemId, userId);
+        log.info("Получен запрос Delete " + CONTROLLER_ITEM_PATH + "/{} пользователя {}", itemId, userId);
         Item item = itemRepository.getReferenceById(itemId);
         verificationOfCreator(userId, item);
 
@@ -96,28 +107,23 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemWithDateBookingResponse> getItems(int userId, Integer from, Integer size) {
-        log.info("Получен запрос Get /items пользователя {}", userId);
+        log.info("Получен запрос Get " + CONTROLLER_ITEM_PATH + " пользователя {}", userId);
         Pageable pageable = createPageRequest(from, size);
         List<Item> listItem = itemRepository.findAllByOwnerIdOrderById(userId, pageable).getContent();
         List<Booking> bookingList = bookingRepository.getBookingsByOwnerItemAndStatus(
                 userId, StatusBooking.APPROVED, null).getContent();
         List<ItemWithDateBookingResponse> listResponse = listItem.stream()
                 .map(itemMapper::toItemWithDateBookingResponse)
-                .collect(Collectors.toList());
+                .collect(toList());
 
-        for (ItemWithDateBookingResponse item : listResponse) {
-            int itemId = item.getId();
-            List<Booking> bookingFilter = bookingList.stream()
-                    .filter(booking -> booking.getItem().getId() == itemId)
-                    .collect(Collectors.toList());
-            updateItemToListBooking(bookingFilter, item);
-        }
+        updateItemResponseByInfoBooking(listResponse, bookingList);
+        updateCommentsFromDB(listResponse);
         return listResponse;
     }
 
     @Override
     public ItemResponse changeItem(Integer userId, Integer itemId, PatchItemRequestDto patchItemRequestDto) {
-        log.info("Получен запрос Patch /items/{} пользователя {}", itemId, userId);
+        log.info("Получен запрос Patch " + CONTROLLER_ITEM_PATH + "/{} пользователя {}", itemId, userId);
         Item item = checkItemInDB(itemId);
         verificationOfCreator(userId, item);
         ItemDto itemDto = itemMapper.toItemDto(item);
@@ -130,20 +136,20 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemResponse> getItemsByTextSearch(String text, Integer from, Integer size) {
-        log.info("Получен запрос Get /search?text={}", text);
+        log.info("Получен запрос Get " + CONTROLLER_ITEM_PATH + "/search?text={}", text);
         if (text.isBlank()) {
             return Collections.emptyList();
         }
         Pageable pageable = createPageRequest(from, size);
-        List<Item> itemList = itemRepository.findItemsByTextSearch(text, text, pageable).getContent();
+        List<Item> itemList = itemRepository.findItemsByTextSearch(text, pageable).getContent();
         return itemList.stream()
                 .map(itemMapper::toItemResponse)
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     @Override
     public CommentResponse createComment(int userId, Integer itemId, CreateCommentRequestDto createCommentRequestDto) {
-        log.info("Получен запрос POST /items/{}/comment от User {}", itemId, userId);
+        log.info("Получен запрос POST " + CONTROLLER_ITEM_PATH + "/{}/comment от User {}", itemId, userId);
         Booking booking = checkAppropriateBookingInDB(userId, itemId);
         CommentDto commentDto = itemMapper.toCommentDto(createCommentRequestDto, booking.getBooker(), booking.getItem());
 
@@ -155,12 +161,6 @@ public class ItemServiceImpl implements ItemService {
     private Pageable createPageRequest(Integer from, Integer size) {
         if (from == null || size == null) {
             return null;
-        }
-        if (size <= 0) {
-            throw new CustomValueException("Количество элементов на странице должно быть больше 0");
-        }
-        if (from < 0) {
-            throw new CustomValueException("Не допустимый индекс первого элемента: " + from);
         }
         int number = from / size;
         return PageRequest.of(number, size);
@@ -183,6 +183,16 @@ public class ItemServiceImpl implements ItemService {
         if (userId != item.getOwner().getId()) {
             log.error("Пользователь {} не является создателем Item {}", userId, item.getName());
             throw new UnknownValueException("Запрет доступа пользователю: " + userId);
+        }
+    }
+
+    private void updateItemResponseByInfoBooking(List<ItemWithDateBookingResponse> listResponse, List<Booking> bookingList) {
+        for (ItemWithDateBookingResponse item : listResponse) {
+            int itemId = item.getId();
+            List<Booking> bookingFilter = bookingList.stream()
+                    .filter(booking -> booking.getItem().getId() == itemId)
+                    .collect(toList());
+            updateItemToListBooking(bookingFilter, item);
         }
     }
 
@@ -211,6 +221,26 @@ public class ItemServiceImpl implements ItemService {
         item.setLastBooking(bookingLast == null ? null : itemMapper.toInfoBookingByItemDto(bookingLast));
         item.setNextBooking(bookingNext == null ? null : itemMapper.toInfoBookingByItemDto(bookingNext));
         return item;
+    }
+
+    private void updateCommentsFromDB(List<ItemWithDateBookingResponse> listResponse) {
+        List<Integer> listItemId = listResponse.stream()
+                .map(ItemWithDateBookingResponse::getId)
+                .collect(toList());
+
+        Map<Integer, List<CommentShortDto>> comments = commentRepository.findAllByItemIdIn(listItemId).stream()
+                .collect(groupingBy(CommentShortDto::getItemId, toList()));
+
+        for (ItemWithDateBookingResponse itemWithDateBookingResponse : listResponse) {
+            if (comments.containsKey(itemWithDateBookingResponse.getId())) {
+                List<CommentResponse> listResult = comments.get(itemWithDateBookingResponse.getId()).stream()
+                        .map(itemMapper::toCommentResponse)
+                        .collect(toList());
+                itemWithDateBookingResponse.setComments(listResult);
+            } else {
+                itemWithDateBookingResponse.setComments(new ArrayList<>());
+            }
+        }
     }
 
     private Item checkItemInDB(int itemId) {

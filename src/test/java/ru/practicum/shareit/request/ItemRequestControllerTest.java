@@ -22,6 +22,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static ru.practicum.shareit.related.Constants.CONTROLLER_REQUEST_PATH;
+import static ru.practicum.shareit.related.Constants.REQUEST_HEADER_USER_KEY;
 
 @WebMvcTest(controllers = ItemRequestController.class)
 class ItemRequestControllerTest {
@@ -37,13 +39,13 @@ class ItemRequestControllerTest {
 
     private final EasyRandom random = new EasyRandom();
 
+    private int userId = 1;
 
     @Test
     @SneakyThrows
     void createdRequest_whenCreateDto_thenResponseIsCorrect() {
         CreateItemRequestReqDto request = random.nextObject(CreateItemRequestReqDto.class);
         ItemRequestResponse response = random.nextObject(ItemRequestResponse.class);
-        int userId = 1;
 
         when(itemRequestService.createdRequest(anyInt(), any(CreateItemRequestReqDto.class)))
                 .thenAnswer(invocationOnMock -> {
@@ -53,10 +55,10 @@ class ItemRequestControllerTest {
                     return response;
                 });
 
-        mvc.perform(post("/requests")
+        mvc.perform(post(CONTROLLER_REQUEST_PATH)
                         .content(mapper.writeValueAsString(request))
                         .characterEncoding(StandardCharsets.UTF_8)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isCreated())
@@ -74,15 +76,14 @@ class ItemRequestControllerTest {
         CreateItemRequestReqDto request = random.nextObject(CreateItemRequestReqDto.class);
         request.setDescription("   ");
         ItemRequestResponse response = random.nextObject(ItemRequestResponse.class);
-        int userId = 1;
 
         when(itemRequestService.createdRequest(anyInt(), any(CreateItemRequestReqDto.class)))
                 .thenReturn(response);
 
-        mvc.perform(post("/requests")
+        mvc.perform(post(CONTROLLER_REQUEST_PATH)
                         .content(mapper.writeValueAsString(request))
                         .characterEncoding(StandardCharsets.UTF_8)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
@@ -95,14 +96,13 @@ class ItemRequestControllerTest {
     @SneakyThrows
     void getRequests_whenRequest_whenStatusOkWithCallingMethod() {
         List<ItemRequestResponse> response = List.of(random.nextObject(ItemRequestResponse.class));
-        int userId = 1;
 
         when(itemRequestService.getRequests(anyInt()))
                 .thenReturn(response);
 
-        mvc.perform(get("/requests")
+        mvc.perform(get(CONTROLLER_REQUEST_PATH)
                         .characterEncoding(StandardCharsets.UTF_8)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -116,14 +116,13 @@ class ItemRequestControllerTest {
     void getRequestsAll_whenRequest_whenStatusOkWithCallingMethod() {
         List<ItemRequestResponse> response = List.of(random.nextObject(ItemRequestResponse.class),
                 random.nextObject(ItemRequestResponse.class));
-        int userId = 1;
 
         when(itemRequestService.getRequestsAll(anyInt(), anyInt(), anyInt()))
                 .thenReturn(response);
 
-        mvc.perform(get("/requests/all?from=2&size=2")
+        mvc.perform(get(CONTROLLER_REQUEST_PATH + "/all?from=2&size=2")
                         .characterEncoding(StandardCharsets.UTF_8)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -134,17 +133,29 @@ class ItemRequestControllerTest {
 
     @Test
     @SneakyThrows
+    void getRequestsAll_whenBadRequestPageable_thenResponseHasSize() {
+        mvc.perform(get(CONTROLLER_REQUEST_PATH + "/all?from=-1&size=1")
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(itemRequestService, never()).getRequestsAll(userId, -1, 1);
+    }
+
+    @Test
+    @SneakyThrows
     void getItemRequest_whenRightPathVariable_thenItemReqById() {
         ItemRequestResponse response = random.nextObject(ItemRequestResponse.class);
-        int userId = 1;
         int requestId = 3;
 
         when(itemRequestService.getItemRequest(requestId, userId))
                 .thenReturn(response);
 
-        mvc.perform(get("/requests/" + requestId)
+        mvc.perform(get(CONTROLLER_REQUEST_PATH + "/" + requestId)
                         .characterEncoding(StandardCharsets.UTF_8)
-                        .header("X-Sharer-User-Id", userId)
+                        .header(REQUEST_HEADER_USER_KEY, userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())

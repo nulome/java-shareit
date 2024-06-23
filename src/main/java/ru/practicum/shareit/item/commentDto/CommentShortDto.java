@@ -1,18 +1,18 @@
-package ru.practicum.shareit.request.dto;
+package ru.practicum.shareit.item.commentDto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ru.practicum.shareit.user.model.User;
 
 import java.time.ZonedDateTime;
 
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ItemRequestReqDto {
+@Data
+public class CommentShortDto {
     private Integer id;
-    private String description;
-    private User requestor;
+    private String text;
+    private String authorName;
+    private Integer itemId;
     private ZonedDateTime created;
 }

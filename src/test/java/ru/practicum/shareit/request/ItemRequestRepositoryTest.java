@@ -34,20 +34,20 @@ class ItemRequestRepositoryTest {
         user1.setId(1);
         userRepository.save(user1);
         itemRequest = new ItemRequest(1, "Item 1 By User 1 By Created Old", user1,
-                ZonedDateTime.now().minusDays(8), null);
+                ZonedDateTime.now().minusDays(8));
         itemRequestRepository.save(itemRequest);
         itemRequest = new ItemRequest(2, "Item 2 By User 1 By Created Eden", user1,
-                ZonedDateTime.now().minusDays(4), null);
+                ZonedDateTime.now().minusDays(4));
         itemRequestRepository.save(itemRequest);
 
         User user2 = random.nextObject(User.class);
         user2.setId(2);
         userRepository.save(user2);
         itemRequest = new ItemRequest(3, "Item 3 By User 2 By Created Eden", user2,
-                ZonedDateTime.now().minusDays(3), null);
+                ZonedDateTime.now().minusDays(3));
         itemRequestRepository.save(itemRequest);
         itemRequest = new ItemRequest(4, "Item 4 By User 2 By Created Old", user2,
-                ZonedDateTime.now().minusDays(5), null);
+                ZonedDateTime.now().minusDays(5));
         itemRequestRepository.save(itemRequest);
     }
 

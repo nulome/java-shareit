@@ -10,10 +10,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import ru.practicum.shareit.handler.CustomValueException;
+import ru.practicum.shareit.item.ItemRepository;
+import ru.practicum.shareit.item.dto.ItemShortDto;
 import ru.practicum.shareit.request.dto.CreateItemRequestReqDto;
 import ru.practicum.shareit.request.dto.ItemRequestReqDto;
 import ru.practicum.shareit.request.dto.ItemRequestResponse;
+import ru.practicum.shareit.request.dto.ItemRequestShortDto;
 import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
@@ -37,6 +39,8 @@ class ItemRequestServiceImplTest {
     @Mock
     private UserRepository userRepository;
     @Mock
+    private ItemRepository itemRepository;
+    @Mock
     private ItemRequestMapper itemRequestMapper;
 
     private final EasyRandom random = new EasyRandom();
@@ -44,17 +48,21 @@ class ItemRequestServiceImplTest {
     private CreateItemRequestReqDto createItemRequestReqDto;
     private ItemRequestReqDto itemRequestReqDto;
     private ItemRequest itemRequest;
+    private ItemRequestShortDto itemRequestShortDto;
     private ItemRequestResponse itemRequestResponse;
+    ItemShortDto itemShortDto;
     private User user;
     int userId = 1;
 
     @BeforeEach
     void setUp() {
-        itemRequestService = new ItemRequestServiceImpl(itemRequestRepository, userRepository, itemRequestMapper);
+        itemRequestService = new ItemRequestServiceImpl(itemRequestRepository, userRepository, itemRepository, itemRequestMapper);
         createItemRequestReqDto = random.nextObject(CreateItemRequestReqDto.class);
         itemRequestReqDto = random.nextObject(ItemRequestReqDto.class);
         itemRequest = random.nextObject(ItemRequest.class);
+        itemRequestShortDto = random.nextObject(ItemRequestShortDto.class);
         itemRequestResponse = random.nextObject(ItemRequestResponse.class);
+        itemShortDto = random.nextObject(ItemShortDto.class);
         user = random.nextObject(User.class);
     }
 
@@ -95,7 +103,9 @@ class ItemRequestServiceImplTest {
 
         when(userRepository.getUserById(userId)).thenReturn(Optional.of(user));
         when(itemRequestRepository.findAllByRequestorIdOrderByCreatedDesc(userId)).thenReturn(list);
-        when(itemRequestMapper.toItemRequestResponse(any(ItemRequest.class))).thenReturn(itemRequestResponse);
+        when(itemRequestMapper.toItemRequestShortDto(any(ItemRequest.class))).thenReturn(itemRequestShortDto);
+        when(itemRepository.findAllByRequestIdInList(anyList())).thenReturn(List.of(itemShortDto));
+        when(itemRequestMapper.toItemRequestResponse(any(ItemRequestShortDto.class))).thenReturn(itemRequestResponse);
 
         assertEquals(1, itemRequestService.getRequests(userId).size());
         verify(itemRequestRepository).findAllByRequestorIdOrderByCreatedDesc(userId);
@@ -109,28 +119,22 @@ class ItemRequestServiceImplTest {
         when(userRepository.getUserById(userId)).thenReturn(Optional.of(user));
         when(itemRequestRepository.findAllByRequestorIdNotOrderByCreatedDesc(anyInt(), any(Pageable.class)))
                 .thenReturn(page);
-        when(itemRequestMapper.toItemRequestResponse(any(ItemRequest.class))).thenReturn(itemRequestResponse);
+        when(itemRequestMapper.toItemRequestShortDto(any(ItemRequest.class))).thenReturn(itemRequestShortDto);
+        when(itemRepository.findAllByRequestIdInList(anyList())).thenReturn(List.of(itemShortDto));
+        when(itemRequestMapper.toItemRequestResponse(any(ItemRequestShortDto.class))).thenReturn(itemRequestResponse);
 
         assertEquals(2, itemRequestService.getRequestsAll(userId, 0, 2).size());
         verify(itemRequestRepository).findAllByRequestorIdNotOrderByCreatedDesc(anyInt(), any(Pageable.class));
     }
 
     @Test
-    void getRequestsAll_whenBadRequestParamPageable_thenThrows() {
-        when(userRepository.getUserById(userId)).thenReturn(Optional.of(user));
-
-        assertThrows(CustomValueException.class, () -> itemRequestService.getRequestsAll(userId, 0, 0));
-        verify(itemRequestRepository, never()).findAllByRequestorIdNotOrderByCreatedDesc(anyInt(), any(Pageable.class));
-
-        assertThrows(CustomValueException.class, () -> itemRequestService.getRequestsAll(userId, -1, 2));
-        verify(itemRequestRepository, never()).findAllByRequestorIdNotOrderByCreatedDesc(anyInt(), any(Pageable.class));
-    }
-
-    @Test
     void getItemRequest_whenRightRequest_thenItem() {
         when(userRepository.getUserById(userId)).thenReturn(Optional.of(user));
         when(itemRequestRepository.getItemRequestById(anyInt())).thenReturn(Optional.of(itemRequest));
-        when(itemRequestMapper.toItemRequestResponse(any(ItemRequest.class))).thenReturn(itemRequestResponse);
+
+        when(itemRequestMapper.toItemRequestShortDto(any(ItemRequest.class))).thenReturn(itemRequestShortDto);
+        when(itemRepository.findAllByRequestIdInList(anyList())).thenReturn(List.of(itemShortDto));
+        when(itemRequestMapper.toItemRequestResponse(any(ItemRequestShortDto.class))).thenReturn(itemRequestResponse);
 
         assertEquals(itemRequestResponse.getId(), itemRequestService.getItemRequest(1, userId).getId());
         verify(itemRequestRepository).getItemRequestById(anyInt());

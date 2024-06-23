@@ -2,14 +2,12 @@ package ru.practicum.shareit.user;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.dto.UserResponse;
+import ru.practicum.shareit.user.model.User;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-@ExtendWith(MockitoExtension.class)
 class UserMapperTest {
 
     private UserMapper userMapper;
@@ -20,14 +18,15 @@ class UserMapperTest {
     }
 
     @Test
-    void toResponse() {
+    void toResponse_whenResponseNull_thenResultNull() {
         UserResponse userActual = userMapper.toResponse(null);
         assertNull(userActual);
     }
 
     @Test
-    void toUserDto() {
-        UserDto userActual = userMapper.toUserDto(null);
+    void toUserDto_whenResponseNull_thenResultNull() {
+        User user = null;
+        UserDto userActual = userMapper.toUserDto(user);
         assertNull(userActual);
     }
 }

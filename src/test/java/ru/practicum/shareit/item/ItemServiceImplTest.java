@@ -21,7 +21,9 @@ import ru.practicum.shareit.item.commentDto.CreateCommentRequestDto;
 import ru.practicum.shareit.item.dto.*;
 import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.request.ItemRequestMapper;
 import ru.practicum.shareit.request.ItemRequestRepository;
+import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
 
@@ -54,6 +56,10 @@ class ItemServiceImplTest {
     private ItemRequestRepository itemRequestRepository;
     @Mock
     private ItemMapper itemMapper;
+    @Mock
+    private UserMapper userMapper;
+    @Mock
+    private ItemRequestMapper itemRequestMapper;
 
     private final EasyRandom random = new EasyRandom();
 
@@ -61,7 +67,6 @@ class ItemServiceImplTest {
     ItemDto itemDto;
     Item item;
     private ItemWithDateBookingResponse itemWithDateBookingResponse;
-    private CommentResponse commentResponse;
     private User user;
     private final int userId = 1;
     private final int itemId = 1;
@@ -70,13 +75,12 @@ class ItemServiceImplTest {
     @BeforeEach
     void setUp() {
         itemService = new ItemServiceImpl(itemRepository, userRepository, bookingRepository, commentRepository,
-                itemRequestRepository, itemMapper);
+                itemRequestRepository, itemMapper, userMapper, itemRequestMapper);
         user = random.nextObject(User.class);
         itemResponse = random.nextObject(ItemResponse.class);
         itemDto = random.nextObject(ItemDto.class);
         item = random.nextObject(Item.class);
         itemWithDateBookingResponse = random.nextObject(ItemWithDateBookingResponse.class);
-        commentResponse = random.nextObject(CommentResponse.class);
 
     }
 
@@ -228,13 +232,13 @@ class ItemServiceImplTest {
         String text = "TextSearch";
         Page<Item> pageItem = new PageImpl<>(new ArrayList<>(List.of(item)), PageRequest.of(0, 2), 1);
 
-        when(itemRepository.findItemsByTextSearch(anyString(), anyString(), any(Pageable.class)))
+        when(itemRepository.findItemsByTextSearch(anyString(), any(Pageable.class)))
                 .thenReturn(pageItem);
         when(itemMapper.toItemResponse(any(Item.class))).thenReturn(itemResponse);
 
         List<ItemResponse> listActual = itemService.getItemsByTextSearch(text, 0, 2);
         assertEquals(1, listActual.size());
-        verify(itemRepository).findItemsByTextSearch(anyString(), anyString(), any(Pageable.class));
+        verify(itemRepository).findItemsByTextSearch(anyString(), any(Pageable.class));
     }
 
     @Test
@@ -243,21 +247,7 @@ class ItemServiceImplTest {
         List<ItemResponse> listActual = itemService.getItemsByTextSearch(text, 0, 10);
 
         assertEquals(0, listActual.size());
-        verify(itemRepository, never()).findItemsByTextSearch(anyString(), anyString(), any(Pageable.class));
-    }
-
-    @Test
-    void getItemsByTextSearch_withBadRequestPageableSize_thenThrows() {
-        String text = "tsk";
-        assertThrows(CustomValueException.class, () -> itemService.getItemsByTextSearch(text, 0, 0));
-        verify(itemRepository, never()).findItemsByTextSearch(anyString(), anyString(), any(Pageable.class));
-    }
-
-    @Test
-    void getItemsByTextSearch_withBadRequestPageableFrom_thenThrows() {
-        String text = "tsk";
-        assertThrows(CustomValueException.class, () -> itemService.getItemsByTextSearch(text, -1, 3));
-        verify(itemRepository, never()).findItemsByTextSearch(anyString(), anyString(), any(Pageable.class));
+        verify(itemRepository, never()).findItemsByTextSearch(anyString(), any(Pageable.class));
     }
 
     @Test

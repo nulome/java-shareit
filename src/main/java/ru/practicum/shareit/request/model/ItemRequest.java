@@ -2,12 +2,10 @@ package ru.practicum.shareit.request.model;
 
 import lombok.*;
 import org.hibernate.annotations.Type;
-import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.*;
 import java.time.ZonedDateTime;
-import java.util.List;
 
 @Getter
 @Setter
@@ -28,7 +26,4 @@ public class ItemRequest {
     @Column(name = "created_time")
     @Type(type = "java.time.ZonedDateTime")
     private ZonedDateTime created;
-    @OneToMany
-    @JoinColumn(name = "request_id")
-    List<Item> listItem;
 }

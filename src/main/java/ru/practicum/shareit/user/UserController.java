@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.user.dto.CreateUserRequestDto;
 import ru.practicum.shareit.user.dto.PatchUserRequestDto;
@@ -15,9 +16,11 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import java.util.List;
 
+import static ru.practicum.shareit.related.Constants.CONTROLLER_USER_PATH;
+
 @RestController
 @RequiredArgsConstructor
-@RequestMapping(path = "/users")
+@RequestMapping(path = CONTROLLER_USER_PATH)
 public class UserController {
 
     private final UserService userService;
@@ -46,6 +49,7 @@ public class UserController {
 
 
     @GetMapping
+    @Validated
     public List<UserResponse> getUsers(@RequestParam(value = "page-number", defaultValue = "0") @Min(0) int number,
                                        @RequestParam(value = "page-size", defaultValue = "10") @Min(3) @Max(50) int size) {
         return userService.getUsers(PageRequest.of(number, size)).getContent();
