@@ -2,7 +2,6 @@ package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.BookingRepository;
@@ -34,6 +33,7 @@ import java.util.Map;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 import static ru.practicum.shareit.related.Constants.CONTROLLER_ITEM_PATH;
+import static ru.practicum.shareit.related.UtilityClasses.createPageRequest;
 
 @RequiredArgsConstructor
 @Service
@@ -51,7 +51,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemResponse createItem(Integer userId, CreateItemRequestDto createItemRequestDto) {
-        log.info("Получен запрос Post " + CONTROLLER_ITEM_PATH + " - {} пользователя {}", createItemRequestDto.getName(), userId);
+        log.info("Получен запрос Post {} - {} пользователя {}", CONTROLLER_ITEM_PATH, createItemRequestDto.getName(), userId);
         User user = userRepository.getUserById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Значение в базе не найдено user: " + userId));
         ItemRequest itemRequest = null;
@@ -68,7 +68,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemWithDateBookingResponse readItem(int userId, Integer itemId) {
-        log.info("Получен запрос Get " + CONTROLLER_ITEM_PATH + "/{}", itemId);
+        log.info("Получен запрос Get {}/{}", CONTROLLER_ITEM_PATH, itemId);
         Item item = checkItemInDB(itemId);
         ItemWithDateBookingResponse itemResponse = itemMapper.toItemWithDateBookingResponse(item);
         List<Booking> bookingList = new ArrayList<>();
@@ -76,13 +76,13 @@ public class ItemServiceImpl implements ItemService {
             bookingList = bookingRepository.findAllByItemIdAndStatusOrderByStartDesc(itemId, StatusBooking.APPROVED);
         }
         ItemWithDateBookingResponse itemWithDateBookingResponse = updateItemToListBooking(bookingList, itemResponse);
-        updateCommentsFromDB(List.of(itemWithDateBookingResponse));
+        enrichCommentsFromDB(List.of(itemWithDateBookingResponse));
         return itemWithDateBookingResponse;
     }
 
     @Override
     public ItemResponse updateItem(Integer userId, ItemRequestDto itemRequestDto) {
-        log.info("Получен запрос Put " + CONTROLLER_ITEM_PATH + " - {} пользователя {}", itemRequestDto.getName(), userId);
+        log.info("Получен запрос Put {} - {} пользователя {}", CONTROLLER_ITEM_PATH, itemRequestDto.getName(), userId);
         ItemDto itemDto = itemMapper.toItemDto(itemRequestDto);
         Item item = checkItemInDB(itemDto.getId());
         verificationOfCreator(userId, item);
@@ -98,7 +98,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public void deleteItem(Integer userId, Integer itemId) {
-        log.info("Получен запрос Delete " + CONTROLLER_ITEM_PATH + "/{} пользователя {}", itemId, userId);
+        log.info("Получен запрос Delete {}/{} пользователя {}", CONTROLLER_ITEM_PATH, itemId, userId);
         Item item = itemRepository.getReferenceById(itemId);
         verificationOfCreator(userId, item);
 
@@ -107,7 +107,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemWithDateBookingResponse> getItems(int userId, Integer from, Integer size) {
-        log.info("Получен запрос Get " + CONTROLLER_ITEM_PATH + " пользователя {}", userId);
+        log.info("Получен запрос Get {} пользователя {}", CONTROLLER_ITEM_PATH, userId);
         Pageable pageable = createPageRequest(from, size);
         List<Item> listItem = itemRepository.findAllByOwnerIdOrderById(userId, pageable).getContent();
         List<Booking> bookingList = bookingRepository.getBookingsByOwnerItemAndStatus(
@@ -117,13 +117,13 @@ public class ItemServiceImpl implements ItemService {
                 .collect(toList());
 
         updateItemResponseByInfoBooking(listResponse, bookingList);
-        updateCommentsFromDB(listResponse);
+        enrichCommentsFromDB(listResponse);
         return listResponse;
     }
 
     @Override
     public ItemResponse changeItem(Integer userId, Integer itemId, PatchItemRequestDto patchItemRequestDto) {
-        log.info("Получен запрос Patch " + CONTROLLER_ITEM_PATH + "/{} пользователя {}", itemId, userId);
+        log.info("Получен запрос Patch {}/{} пользователя {}", CONTROLLER_ITEM_PATH, itemId, userId);
         Item item = checkItemInDB(itemId);
         verificationOfCreator(userId, item);
         ItemDto itemDto = itemMapper.toItemDto(item);
@@ -136,7 +136,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemResponse> getItemsByTextSearch(String text, Integer from, Integer size) {
-        log.info("Получен запрос Get " + CONTROLLER_ITEM_PATH + "/search?text={}", text);
+        log.info("Получен запрос Get {}/search?text={}", CONTROLLER_ITEM_PATH, text);
         if (text.isBlank()) {
             return Collections.emptyList();
         }
@@ -149,21 +149,13 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public CommentResponse createComment(int userId, Integer itemId, CreateCommentRequestDto createCommentRequestDto) {
-        log.info("Получен запрос POST " + CONTROLLER_ITEM_PATH + "/{}/comment от User {}", itemId, userId);
+        log.info("Получен запрос POST {}/{}/comment от User {}", CONTROLLER_ITEM_PATH, itemId, userId);
         Booking booking = checkAppropriateBookingInDB(userId, itemId);
         CommentDto commentDto = itemMapper.toCommentDto(createCommentRequestDto, booking.getBooker(), booking.getItem());
 
         Comment comment = itemMapper.toComment(commentDto);
         comment = commentRepository.save(comment);
         return itemMapper.toCommentResponse(comment);
-    }
-
-    private Pageable createPageRequest(Integer from, Integer size) {
-        if (from == null || size == null) {
-            return null;
-        }
-        int number = from / size;
-        return PageRequest.of(number, size);
     }
 
     private void changeByPatchDto(ItemDto itemDto, PatchItemRequestDto patchItemRequestDto) {
@@ -223,7 +215,7 @@ public class ItemServiceImpl implements ItemService {
         return item;
     }
 
-    private void updateCommentsFromDB(List<ItemWithDateBookingResponse> listResponse) {
+    private void enrichCommentsFromDB(List<ItemWithDateBookingResponse> listResponse) {
         List<Integer> listItemId = listResponse.stream()
                 .map(ItemWithDateBookingResponse::getId)
                 .collect(toList());
@@ -232,14 +224,10 @@ public class ItemServiceImpl implements ItemService {
                 .collect(groupingBy(CommentShortDto::getItemId, toList()));
 
         for (ItemWithDateBookingResponse itemWithDateBookingResponse : listResponse) {
-            if (comments.containsKey(itemWithDateBookingResponse.getId())) {
-                List<CommentResponse> listResult = comments.get(itemWithDateBookingResponse.getId()).stream()
-                        .map(itemMapper::toCommentResponse)
-                        .collect(toList());
-                itemWithDateBookingResponse.setComments(listResult);
-            } else {
-                itemWithDateBookingResponse.setComments(new ArrayList<>());
-            }
+            List<CommentResponse> listResult = comments.getOrDefault(itemWithDateBookingResponse.getId(), new ArrayList<>()).stream()
+                    .map(itemMapper::toCommentResponse)
+                    .collect(toList());
+            itemWithDateBookingResponse.setComments(listResult);
         }
     }
 

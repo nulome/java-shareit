@@ -7,9 +7,6 @@ import ru.practicum.shareit.request.dto.ItemRequestReqDto;
 import ru.practicum.shareit.request.dto.ItemRequestResponse;
 import ru.practicum.shareit.request.dto.ItemRequestShortDto;
 import ru.practicum.shareit.request.model.ItemRequest;
-import ru.practicum.shareit.user.model.User;
-
-import java.time.ZonedDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -61,9 +58,10 @@ class ItemRequestMapperTest {
 
     @Test
     void toItemRequest_whenRightResponse_thenResultNotNull() {
-        ItemRequestReqDto itemRequestReqDto = new ItemRequestReqDto(1, "desc", new User(), ZonedDateTime.now());
-        ItemRequest reqDto = itemRequestMapper.toItemRequest(itemRequestReqDto);
-        assertEquals(1, reqDto.getId());
+        ItemRequestReqDto itemRequestReqDto = random.nextObject(ItemRequestReqDto.class);
+        itemRequestReqDto.setRequestor(null);
+        ItemRequest actual = itemRequestMapper.toItemRequest(itemRequestReqDto);
+        assertEquals(itemRequestReqDto.getId(), actual.getId());
     }
 
     @Test

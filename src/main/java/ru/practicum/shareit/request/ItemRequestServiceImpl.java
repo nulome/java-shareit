@@ -2,9 +2,7 @@ package ru.practicum.shareit.request;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.item.ItemRepository;
 import ru.practicum.shareit.item.dto.ItemShortDto;
@@ -25,6 +23,7 @@ import java.util.stream.Collectors;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 import static ru.practicum.shareit.related.Constants.CONTROLLER_REQUEST_PATH;
+import static ru.practicum.shareit.related.UtilityClasses.createPageRequest;
 
 @Service
 @Slf4j
@@ -39,7 +38,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
     @Override
     public ItemRequestResponse createdRequest(int userId, CreateItemRequestReqDto createItemRequestReqDto) {
-        log.info("Получен запрос Post " + CONTROLLER_REQUEST_PATH + " - requestor: {}", userId);
+        log.info("Получен запрос Post {} - requestor: {}", CONTROLLER_REQUEST_PATH, userId);
         User user = checkGetUserInDataBase(userId);
         ItemRequestReqDto itemRequestReqDto = itemRequestMapper.toReqDto(createItemRequestReqDto, user);
 
@@ -51,12 +50,12 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
     @Override
     public List<ItemRequestResponse> getRequests(int userId) {
-        log.info("Получен запрос GET " + CONTROLLER_REQUEST_PATH + " - user: {}", userId);
+        log.info("Получен запрос GET {} - user: {}", CONTROLLER_REQUEST_PATH, userId);
         checkGetUserInDataBase(userId);
 
         List<ItemRequestShortDto> itemRequestShortList =
                 mapperItemRequestToShort(itemRequestRepository.findAllByRequestorIdOrderByCreatedDesc(userId));
-        updateItemRequestByListItemFromDB(itemRequestShortList);
+        enrichItemRequestByListItemFromDB(itemRequestShortList);
 
         return itemRequestShortList.stream()
                 .map(itemRequestMapper::toItemRequestResponse)
@@ -65,13 +64,13 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
     @Override
     public List<ItemRequestResponse> getRequestsAll(int userId, Integer from, Integer size) {
-        log.info("Получен запрос GET " + CONTROLLER_REQUEST_PATH + "/all?from={}&size={}", from, size);
+        log.info("Получен запрос GET {}/all?from={}&size={}", CONTROLLER_REQUEST_PATH, from, size);
         checkGetUserInDataBase(userId);
         Pageable pageable = createPageRequest(from, size);
 
         List<ItemRequestShortDto> itemRequestShortList = mapperItemRequestToShort(
                 itemRequestRepository.findAllByRequestorIdNotOrderByCreatedDesc(userId, pageable).getContent());
-        updateItemRequestByListItemFromDB(itemRequestShortList);
+        enrichItemRequestByListItemFromDB(itemRequestShortList);
 
         return itemRequestShortList.stream()
                 .map(itemRequestMapper::toItemRequestResponse)
@@ -80,17 +79,17 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
     @Override
     public ItemRequestResponse getItemRequest(int requestId, int userId) {
-        log.info("Получен запрос GET " + CONTROLLER_REQUEST_PATH + "/{}", requestId);
+        log.info("Получен запрос GET {}/{}", CONTROLLER_REQUEST_PATH, requestId);
         checkGetUserInDataBase(userId);
         ItemRequest itemRequest = checkItemRequestInDataBase(requestId);
 
         List<ItemRequestShortDto> itemRequestShortList = mapperItemRequestToShort(List.of(itemRequest));
-        updateItemRequestByListItemFromDB(itemRequestShortList);
+        enrichItemRequestByListItemFromDB(itemRequestShortList);
 
         return itemRequestMapper.toItemRequestResponse(itemRequestShortList.get(0));
     }
 
-    private void updateItemRequestByListItemFromDB(List<ItemRequestShortDto> itemRequestShortList) {
+    private void enrichItemRequestByListItemFromDB(List<ItemRequestShortDto> itemRequestShortList) {
         List<Integer> listRequestId = itemRequestShortList.stream()
                 .map(ItemRequestShortDto::getId)
                 .collect(toList());
@@ -99,11 +98,8 @@ public class ItemRequestServiceImpl implements ItemRequestService {
                 .collect(groupingBy(ItemShortDto::getRequestId, toList()));
 
         for (ItemRequestShortDto itemRequestShortDto : itemRequestShortList) {
-            if (itemsByRequestIdMap.containsKey(itemRequestShortDto.getId())) {
-                itemRequestShortDto.setItems(itemsByRequestIdMap.get(itemRequestShortDto.getId()));
-            } else {
-                itemRequestShortDto.setItems(new ArrayList<>());
-            }
+            itemRequestShortDto.setItems(
+                    itemsByRequestIdMap.getOrDefault(itemRequestShortDto.getId(), new ArrayList<>()));
         }
     }
 
@@ -111,14 +107,6 @@ public class ItemRequestServiceImpl implements ItemRequestService {
         return list.stream()
                 .map(itemRequestMapper::toItemRequestShortDto)
                 .collect(Collectors.toList());
-    }
-
-    private Pageable createPageRequest(Integer from, Integer size) {
-        if (from == null || size == null) {
-            return null;
-        }
-        int number = from / size;
-        return PageRequest.of(number, size, Sort.by("created"));
     }
 
     private User checkGetUserInDataBase(int userId) {

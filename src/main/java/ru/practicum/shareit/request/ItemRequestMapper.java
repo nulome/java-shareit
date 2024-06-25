@@ -10,6 +10,7 @@ import ru.practicum.shareit.request.dto.ItemRequestResponse;
 import ru.practicum.shareit.request.dto.ItemRequestShortDto;
 import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.UserMapper;
+import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 
 import java.time.LocalDateTime;
@@ -24,11 +25,11 @@ public abstract class ItemRequestMapper {
     UserMapper userMapper;
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "requestor", source = "user")
+    @Mapping(target = "requestor", expression = "java(userMapper.toUserDto(user))")
     @Mapping(target = "created", expression = "java(ZonedDateTime.now())")
     public abstract ItemRequestReqDto toReqDto(CreateItemRequestReqDto createItemRequestReqDto, User user);
 
-
+    @Mapping(target = "requestor", expression = "java(toUser(itemRequestReqDto.getRequestor()))")
     public abstract ItemRequest toItemRequest(ItemRequestReqDto itemRequestReqDto);
 
     @Mapping(target = "created", expression = "java(patchToZone(itemRequestResponse.getCreated()))")
@@ -43,6 +44,14 @@ public abstract class ItemRequestMapper {
     public abstract ItemRequestResponse toItemRequestResponse(ItemRequestShortDto itemRequestShortDto);
 
     public abstract ItemRequestShortDto toItemRequestShortDto(ItemRequest itemRequest);
+
+    @Named("toUser")
+    User toUser(UserDto userDto) {
+        if (userDto != null) {
+            return userMapper.toUser(userDto);
+        }
+        return null;
+    }
 
     @Named("convertToLocal")
     LocalDateTime convertToLocal(ZonedDateTime zdt) {

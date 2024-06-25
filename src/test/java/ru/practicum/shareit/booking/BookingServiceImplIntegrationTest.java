@@ -80,7 +80,7 @@ class BookingServiceImplIntegrationTest {
     @Test
     void getBookingsByOwnerItem_whenRightRequest_thenBookingCurrentOne() {
         List<BookingResponse> listActual = bookingService.getBookingsByOwnerItem(1, "CURRENT",
-                null, null);
+                0, 5);
 
         assertFalse(listActual.isEmpty());
         assertEquals(1, listActual.size());

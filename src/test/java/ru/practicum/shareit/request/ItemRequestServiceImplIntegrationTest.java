@@ -70,7 +70,7 @@ class ItemRequestServiceImplIntegrationTest {
 
         itemRequestService.createdRequest(2, createItemRequestReqDto);
 
-        List<ItemRequestResponse> listActual = itemRequestService.getRequestsAll(1, null, null);
+        List<ItemRequestResponse> listActual = itemRequestService.getRequestsAll(1, 0, 5);
 
         assertNotNull(listActual);
         assertEquals(1, listActual.size());
