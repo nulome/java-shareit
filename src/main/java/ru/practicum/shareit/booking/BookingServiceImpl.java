@@ -2,6 +2,8 @@ package ru.practicum.shareit.booking;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.BookingResponse;
@@ -22,6 +24,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static ru.practicum.shareit.booking.StatusBooking.*;
+import static ru.practicum.shareit.related.Constants.CONTROLLER_BOOKING_PATH;
+import static ru.practicum.shareit.related.UtilityClasses.createPageRequest;
 
 @Slf4j
 @Service
@@ -36,7 +40,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponse createBooking(int userId, CreateBookingRequestDto createBookingRequestDto) {
-        log.info("Получен запрос Post /bookings - booker: {}", userId);
+        log.info("Получен запрос Post {} - booker: {}", CONTROLLER_BOOKING_PATH, userId);
         validationDateStartAndEnd(createBookingRequestDto);
         int itemId = createBookingRequestDto.getItemId();
         User user = checkGetUserInDataBase(userId);
@@ -52,7 +56,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponse readBooking(int userId, int bookingId) {
-        log.info("Получен запрос Get /bookings/{} от User {}", bookingId, userId);
+        log.info("Получен запрос Get {}/{} от User {}", CONTROLLER_BOOKING_PATH, bookingId, userId);
         Booking booking = checkBookingInDB(bookingId);
         verificationAccessCreateUserOrBooker(userId, booking);
 
@@ -61,7 +65,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponse changeBookingStatus(int userId, int bookingId, boolean approved) {
-        log.info("Получен запрос PATCH /bookings/{}?approved={} from User {}", bookingId, approved, userId);
+        log.info("Получен запрос PATCH {}/{}?approved={} from User {}", CONTROLLER_BOOKING_PATH, bookingId, approved, userId);
         Booking booking = checkBookingInDB(bookingId);
         if (booking.getItem().getOwner().getId() != userId) {
             throw new IllegalArgumentException("Не доступно изменение статуса Booking " + bookingId + " для User: " + userId);
@@ -71,25 +75,26 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<BookingResponse> getBookingsByUser(int userId, String state) {
-        log.info("Получен запрос GET /bookings?state={} от User {}", state, userId);
+    public List<BookingResponse> getBookingsByUser(int userId, String state, Integer from, Integer size) {
+        log.info("Получен запрос GET {}?state={} от User {}", CONTROLLER_BOOKING_PATH, state, userId);
         checkGetUserInDataBase(userId);
-        List<Booking> bookingList = getBookingsByState(userId, parseStringToState(state));
+        Pageable pageable = createPageRequest(from, size);
+        List<Booking> bookingList = getBookingsByState(userId, parseStringToState(state), pageable).getContent();
         return bookingList.stream()
                 .map(bookingMapper::toBookingResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<BookingResponse> getBookingsByOwnerItem(int userId, String state) {
-        log.info("Получен запрос GET /bookings/owner?state={} от OwnerItem {}", state, userId);
+    public List<BookingResponse> getBookingsByOwnerItem(int userId, String state, Integer from, Integer size) {
+        log.info("Получен запрос GET {}/owner?state={} от OwnerItem {}", CONTROLLER_BOOKING_PATH, state, userId);
         checkGetUserInDataBase(userId);
-        List<Booking> bookingList = getBookingsByOwner(userId, parseStringToState(state));
+        Pageable pageable = createPageRequest(from, size);
+        List<Booking> bookingList = getBookingsByOwner(userId, parseStringToState(state), pageable).getContent();
         return bookingList.stream()
                 .map(bookingMapper::toBookingResponse)
                 .collect(Collectors.toList());
     }
-
 
     private void verificationAccessCreateUserOrBooker(int userId, Booking booking) {
         log.trace("Проверка доступа для Booking: {}", booking.getId());
@@ -119,34 +124,35 @@ public class BookingServiceImpl implements BookingService {
         }
     }
 
-    private List<Booking> getBookingsByState(int userId, StatusBooking state) {
+    private Page<Booking> getBookingsByState(int userId, StatusBooking state, Pageable pageable) {
         ZonedDateTime dateTime = ZonedDateTime.now();
         switch (state) {
             case ALL:
-                return bookingRepository.findAllByBookerIdOrderByStartDesc(userId);
+                return bookingRepository.findAllByBookerIdOrderByStartDesc(userId, pageable);
             case CURRENT:
-                return bookingRepository.findAllByBookerIdAndStartBeforeAndEndAfterOrderByStartDesc(userId, dateTime, dateTime);
+                return bookingRepository.findAllByBookerIdAndStartBeforeAndEndAfterOrderByStartDesc(userId,
+                        dateTime, dateTime, pageable);
             case PAST:
-                return bookingRepository.findAllByBookerIdAndEndBeforeOrderByStartDesc(userId, dateTime);
+                return bookingRepository.findAllByBookerIdAndEndBeforeOrderByStartDesc(userId, dateTime, pageable);
             case FUTURE:
-                return bookingRepository.findAllByBookerIdAndStartAfterOrderByStartDesc(userId, dateTime);
+                return bookingRepository.findAllByBookerIdAndStartAfterOrderByStartDesc(userId, dateTime, pageable);
             default:
-                return bookingRepository.findAllByBookerIdAndStatusOrderByStartDesc(userId, state);
+                return bookingRepository.findAllByBookerIdAndStatusOrderByStartDesc(userId, state, pageable);
         }
     }
 
-    private List<Booking> getBookingsByOwner(int userId, StatusBooking state) {
+    private Page<Booking> getBookingsByOwner(int userId, StatusBooking state, Pageable pageable) {
         switch (state) {
             case ALL:
-                return bookingRepository.getBookingsByOwnerItem(userId);
+                return bookingRepository.getBookingsByOwnerItem(userId, pageable);
             case CURRENT:
-                return bookingRepository.getBookingsByOwnerCurrent(userId, ZonedDateTime.now());
+                return bookingRepository.getBookingsByOwnerCurrent(userId, ZonedDateTime.now(), pageable);
             case PAST:
-                return bookingRepository.getBookingsByOwnerPast(userId, ZonedDateTime.now());
+                return bookingRepository.getBookingsByOwnerPast(userId, ZonedDateTime.now(), pageable);
             case FUTURE:
-                return bookingRepository.getBookingsByOwnerFuture(userId, ZonedDateTime.now());
+                return bookingRepository.getBookingsByOwnerFuture(userId, ZonedDateTime.now(), pageable);
             default:
-                return bookingRepository.getBookingsByOwnerItemAndStatus(userId, state);
+                return bookingRepository.getBookingsByOwnerItemAndStatus(userId, state, pageable);
         }
     }
 

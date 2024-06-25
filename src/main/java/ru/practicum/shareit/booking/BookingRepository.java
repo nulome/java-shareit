@@ -1,17 +1,18 @@
 package ru.practicum.shareit.booking;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 import ru.practicum.shareit.booking.model.Booking;
 
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 
-@Repository
+
 public interface BookingRepository extends JpaRepository<Booking, Integer> {
 
     String SELECT_BOOKING_BY_BOOKER_SQL = "SELECT * FROM bookings b WHERE b.booker_id = ?1 AND b.item_id = ?2 " +
@@ -22,7 +23,7 @@ public interface BookingRepository extends JpaRepository<Booking, Integer> {
     String SELECT_BY_OWNER_STATUS_SQL = SELECT_BASE_OWNER_STATE_SQL +
             "AND b.status = ?2 ORDER BY b.start DESC ";
     String SELECT_BY_OWNER_CURRENT_SQL = SELECT_BASE_OWNER_STATE_SQL +
-            "AND b.start < ?2 AND b.end > ?2 ORDER BY b.start DESC ";
+            "AND ?2 BETWEEN b.start AND b.end ORDER BY b.start DESC ";
     String SELECT_BY_OWNER_PAST_SQL = SELECT_BASE_OWNER_STATE_SQL +
             "AND b.end < ?2 ORDER BY b.start DESC ";
     String SELECT_BY_OWNER_FUTURE_SQL = SELECT_BASE_OWNER_STATE_SQL +
@@ -40,30 +41,31 @@ public interface BookingRepository extends JpaRepository<Booking, Integer> {
     @Query(UPDATE_BOOKING_STATUS_SQL)
     void updateStatusBooking(@Param(value = "id") int id, @Param(value = "status") StatusBooking status);
 
-    List<Booking> findAllByBookerIdOrderByStartDesc(int userId);
+    Page<Booking> findAllByBookerIdOrderByStartDesc(int userId, Pageable pageable);
 
-    List<Booking> findAllByBookerIdAndStatusOrderByStartDesc(int userId, StatusBooking status);
+    Page<Booking> findAllByBookerIdAndStatusOrderByStartDesc(int userId, StatusBooking status, Pageable pageable);
 
-    List<Booking> findAllByBookerIdAndStartBeforeAndEndAfterOrderByStartDesc(int userId, ZonedDateTime before, ZonedDateTime after);
+    Page<Booking> findAllByBookerIdAndStartBeforeAndEndAfterOrderByStartDesc(int userId, ZonedDateTime before,
+                                                                             ZonedDateTime after, Pageable pageable);
 
-    List<Booking> findAllByBookerIdAndEndBeforeOrderByStartDesc(int userId, ZonedDateTime after);
+    Page<Booking> findAllByBookerIdAndEndBeforeOrderByStartDesc(int userId, ZonedDateTime after, Pageable pageable);
 
-    List<Booking> findAllByBookerIdAndStartAfterOrderByStartDesc(int userId, ZonedDateTime before);
+    Page<Booking> findAllByBookerIdAndStartAfterOrderByStartDesc(int userId, ZonedDateTime before, Pageable pageable);
 
     @Query(value = SELECT_BY_OWNER_SQL)
-    List<Booking> getBookingsByOwnerItem(int userId);
+    Page<Booking> getBookingsByOwnerItem(int userId, Pageable pageable);
 
     @Query(value = SELECT_BY_OWNER_STATUS_SQL)
-    List<Booking> getBookingsByOwnerItemAndStatus(int userId, StatusBooking status);
+    Page<Booking> getBookingsByOwnerItemAndStatus(int userId, StatusBooking status, Pageable pageable);
 
     @Query(value = SELECT_BY_OWNER_CURRENT_SQL)
-    List<Booking> getBookingsByOwnerCurrent(int userId, ZonedDateTime dateTime);
+    Page<Booking> getBookingsByOwnerCurrent(int userId, ZonedDateTime dateTime, Pageable pageable);
 
     @Query(value = SELECT_BY_OWNER_PAST_SQL)
-    List<Booking> getBookingsByOwnerPast(int userId, ZonedDateTime dateTime);
+    Page<Booking> getBookingsByOwnerPast(int userId, ZonedDateTime dateTime, Pageable pageable);
 
     @Query(value = SELECT_BY_OWNER_FUTURE_SQL)
-    List<Booking> getBookingsByOwnerFuture(int userId, ZonedDateTime dateTime);
+    Page<Booking> getBookingsByOwnerFuture(int userId, ZonedDateTime dateTime, Pageable pageable);
 
 
 }
