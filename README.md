@@ -1,6 +1,6 @@
 # java-shareit
 Template repository for Shareit project.
 
-![Screenshot dbdiagram.](/src/main/resources/dbdiagram.png)
+![Screenshot dbdiagram.](/server/src/main/resources/dbdiagram.png)
 
 

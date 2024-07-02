@@ -1,0 +1,24 @@
+server:
+  port: ${U_PORT:9090}
+
+#  POSTGRES_USER=postgres;POSTGRES_PASSWORD=postgres;DB_HOST=localhost;DB_PORT=5432;DB_NAME=shareit;U_PROFILE=test;U_PORT=8080
+
+spring:
+  profiles.active: ${U_PROFILE:test}
+  jpa:
+    hibernate.ddl-auto: validate
+  properties:
+    hibernate:
+      dialect: org.hibernate.dialect.PostgreSQL10Dialect
+      format_sql: true
+  sql.init.mode: always
+
+logging:
+  level:
+    org:
+      springframework:
+        orm:
+          jpa: INFO
+          jpa.JpaTransactionManager: DEBUG
+          transaction: INFO
+          transaction.interceptor: TRACE
