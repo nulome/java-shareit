@@ -16,16 +16,14 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
-        </dependency>
+		</dependency>
     </dependencies>
     <version>0.0.1-SNAPSHOT</version>
 
 	<name>ShareIt</name>
 
 	<properties>
-		<maven.compiler.source>11</maven.compiler.source>
-		<maven.compiler.target>11</maven.compiler.target>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<java.version>11</java.version>
 		<mapstruct.version>1.5.5.Final</mapstruct.version>
 	</properties>
 
@@ -36,6 +34,12 @@
 
 	<dependencyManagement>
 		<dependencies>
+			<dependency>
+				<groupId>org.projectlombok</groupId>
+				<artifactId>lombok</artifactId>
+				<version>1.18.32</version>
+				<scope>provided</scope>
+			</dependency>
 			<dependency>
 				<groupId>org.jeasy</groupId>
 				<artifactId>easy-random-core</artifactId>

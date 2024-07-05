@@ -70,28 +70,6 @@ class ItemRequestControllerTest {
 
     }
 
-//    @Test
-//    @SneakyThrows
-//    void createdRequest_whenCreateDto_thenCorrectVerificationRequest() {
-//        CreateItemRequestReqDto request = random.nextObject(CreateItemRequestReqDto.class);
-//        request.setDescription("   ");
-//        ItemRequestResponse response = random.nextObject(ItemRequestResponse.class);
-//
-//        when(itemRequestService.createdRequest(anyInt(), any(CreateItemRequestReqDto.class)))
-//                .thenReturn(response);
-//
-//        mvc.perform(post(CONTROLLER_REQUEST_PATH)
-//                        .content(mapper.writeValueAsString(request))
-//                        .characterEncoding(StandardCharsets.UTF_8)
-//                        .header(REQUEST_HEADER_USER_KEY, userId)
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .accept(MediaType.APPLICATION_JSON))
-//                .andExpect(status().isBadRequest());
-//
-//        verify(itemRequestService, never()).createdRequest(anyInt(), any(CreateItemRequestReqDto.class));
-//
-//    }
-
     @Test
     @SneakyThrows
     void getRequests_whenRequest_whenStatusOkWithCallingMethod() {
@@ -130,19 +108,6 @@ class ItemRequestControllerTest {
 
         verify(itemRequestService).getRequestsAll(userId, 2, 2);
     }
-
-//    @Test
-//    @SneakyThrows
-//    void getRequestsAll_whenBadRequestPageable_thenResponseHasSize() {
-//        mvc.perform(get(CONTROLLER_REQUEST_PATH + "/all?from=-1&size=1")
-//                        .characterEncoding(StandardCharsets.UTF_8)
-//                        .header(REQUEST_HEADER_USER_KEY, userId)
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .accept(MediaType.APPLICATION_JSON))
-//                .andExpect(status().isBadRequest());
-//
-//        verify(itemRequestService, never()).getRequestsAll(userId, -1, 1);
-//    }
 
     @Test
     @SneakyThrows
