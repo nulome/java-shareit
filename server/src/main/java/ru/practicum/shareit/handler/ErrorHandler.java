@@ -1,7 +1,5 @@
 package ru.practicum.shareit.handler;
 
-import javax.persistence.EntityNotFoundException;
-import javax.validation.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -14,19 +12,12 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import javax.persistence.EntityNotFoundException;
+
 
 @Slf4j
 @RestControllerAdvice
 public class ErrorHandler {
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleValidationException(final ValidationException e) {
-        log.error("Error ValidationException 400 {}", e.getMessage());
-        return new ErrorResponse(
-                "Ошибка данных", e.getMessage()
-        );
-    }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)

@@ -81,26 +81,6 @@ class ItemControllerTest {
         verify(itemService).createItem(anyInt(), any(CreateItemRequestDto.class));
     }
 
-//    @Test
-//    @SneakyThrows
-//    void createItem_whenBadRequestAvailableNull_thenFailValidation() {
-//        CreateItemRequestDto createItemRequestDto = random.nextObject(CreateItemRequestDto.class);
-//        createItemRequestDto.setRequestId(null);
-//        createItemRequestDto.setAvailable(null);
-//        when(itemService.createItem(userId, createItemRequestDto))
-//                .thenReturn(itemResponse);
-//
-//        mvc.perform(post(CONTROLLER_ITEM_PATH)
-//                        .content(mapper.writeValueAsString(createItemRequestDto))
-//                        .characterEncoding(StandardCharsets.UTF_8)
-//                        .header(REQUEST_HEADER_USER_KEY, userId)
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .accept(MediaType.APPLICATION_JSON))
-//                .andExpect(status().isBadRequest());
-//
-//        verify(itemService, never()).createItem(anyInt(), any(CreateItemRequestDto.class));
-//    }
-
     @Test
     @SneakyThrows
     void readItem_whenRightPathVariable_thenItemById() {
@@ -121,37 +101,6 @@ class ItemControllerTest {
         verify(itemService).readItem(anyInt(), anyInt());
     }
 
-//    @Test
-//    @SneakyThrows
-//    void getItems_whenRightResponse_thenStatusOkWithJsonSizeOne() {
-//        List<ItemWithDateBookingResponse> listActual = List.of(itemWithDateBookingResponse);
-//        when(itemService.getItems(userId, 0, 10))
-//                .thenReturn(listActual);
-//
-//        mvc.perform(get(CONTROLLER_ITEM_PATH)
-//                        .characterEncoding(StandardCharsets.UTF_8)
-//                        .header(REQUEST_HEADER_USER_KEY, userId)
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .accept(MediaType.APPLICATION_JSON))
-//                .andExpect(status().isOk())
-//                .andExpect(jsonPath("$", Matchers.hasSize(1)));
-//
-//        verify(itemService).getItems(userId, 0, 10);
-//    }
-
-//    @Test
-//    @SneakyThrows
-//    void getItems_whenBadRequestPageable_thenFailValidation() {
-//        mvc.perform(get(CONTROLLER_ITEM_PATH + "?from=-1&size=1")
-//                        .characterEncoding(StandardCharsets.UTF_8)
-//                        .header(REQUEST_HEADER_USER_KEY, userId)
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .accept(MediaType.APPLICATION_JSON))
-//                .andExpect(status().isBadRequest());
-//
-//        verify(itemService, never()).getItems(userId, -1, 1);
-//    }
-
     @Test
     @SneakyThrows
     void getItemsByTextSearch_whenRightResponse_thenStatusOkWithJsonSizeOne() {
@@ -170,19 +119,6 @@ class ItemControllerTest {
 
         verify(itemService).getItemsByTextSearch(1, search, 0, 3);
     }
-
-//    @Test
-//    @SneakyThrows
-//    void getItemsByTextSearch_whenBadRequestPageable_thenFailValidation() {
-//        mvc.perform(get(CONTROLLER_ITEM_PATH + "/search?text=next&from=0&size=0")
-//                        .characterEncoding(StandardCharsets.UTF_8)
-//                        .header(REQUEST_HEADER_USER_KEY, userId)
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .accept(MediaType.APPLICATION_JSON))
-//                .andExpect(status().isBadRequest());
-//
-//        verify(itemService, never()).getItemsByTextSearch(1, "next", 0, 0);
-//    }
 
     @Test
     @SneakyThrows

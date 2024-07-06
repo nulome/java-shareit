@@ -67,34 +67,6 @@ class UserControllerTest {
         verify(userService).createUser(any(CreateUserRequestDto.class));
     }
 
-//    @Test
-//    @SneakyThrows
-//    void createUser_whenBadRequest_thenFailValidation() {
-//        CreateUserRequestDto request = new CreateUserRequestDto("user", "user@user.com");
-//
-//        when(userService.createUser(any(CreateUserRequestDto.class)))
-//                .thenReturn(new UserResponse());
-//
-//        request.setEmail("user.com");
-//        mvc.perform(post(CONTROLLER_USER_PATH)
-//                        .content(mapper.writeValueAsString(request))
-//                        .characterEncoding(StandardCharsets.UTF_8)
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .accept(MediaType.APPLICATION_JSON))
-//                .andExpect(status().isBadRequest());
-//        verify(userService, never()).createUser(any(CreateUserRequestDto.class));
-//
-//        request.setEmail("user@user.com");
-//        request.setName("  ");
-//        mvc.perform(post(CONTROLLER_USER_PATH)
-//                        .content(mapper.writeValueAsString(request))
-//                        .characterEncoding(StandardCharsets.UTF_8)
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .accept(MediaType.APPLICATION_JSON))
-//                .andExpect(status().isBadRequest());
-//        verify(userService, never()).createUser(any(CreateUserRequestDto.class));
-//    }
-
     @Test
     @SneakyThrows
     void readUser_whenRightPathVariable_thenUserById() {
@@ -112,24 +84,6 @@ class UserControllerTest {
 
         verify(userService).readUser(anyInt());
     }
-
-//    @Test
-//    @SneakyThrows
-//    void getUsers_whenRightResponse_thenStatusOkWithJsonSizeOne() {
-//        Page<UserResponse> page = new PageImpl<>(new ArrayList<>(List.of(response)),
-//                PageRequest.of(0, 2), 10L);
-//        when(userService.getUsers(any(PageRequest.class)))
-//                .thenReturn(page);
-//
-//        mvc.perform(get(CONTROLLER_USER_PATH)
-//                        .characterEncoding(StandardCharsets.UTF_8)
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .accept(MediaType.APPLICATION_JSON))
-//                .andExpect(status().isOk())
-//                .andExpect(jsonPath("$", Matchers.hasSize(1)));
-//
-//        verify(userService).getUsers(any(PageRequest.class));
-//    }
 
     @Test
     @SneakyThrows
@@ -165,23 +119,5 @@ class UserControllerTest {
                 .andExpect(status().isOk());
         verify(userService).changeUser(userId, patchUserRequestDto);
     }
-
-//    @Test
-//    @SneakyThrows
-//    void changeUser_thenBadRequestEmail_thenStatusBadRequest() {
-//        PatchUserRequestDto patchUserRequestDto = new PatchUserRequestDto();
-//        patchUserRequestDto.setEmail("email");
-//
-//        when(userService.changeUser(userId, patchUserRequestDto))
-//                .thenReturn(response);
-//
-//        mvc.perform(patch(CONTROLLER_USER_PATH + "/1")
-//                        .content(mapper.writeValueAsString(patchUserRequestDto))
-//                        .characterEncoding(StandardCharsets.UTF_8)
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .accept(MediaType.APPLICATION_JSON))
-//                .andExpect(status().isBadRequest());
-//        verify(userService, never()).changeUser(userId, patchUserRequestDto);
-//    }
 
 }

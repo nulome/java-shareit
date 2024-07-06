@@ -1,8 +1,6 @@
 package ru.practicum.shareit.request;
 
-import javax.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.item.ItemRepository;
@@ -15,6 +13,7 @@ import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
 
+import javax.persistence.EntityNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -22,11 +21,9 @@ import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
-import static ru.practicum.shareit.related.Constants.CONTROLLER_REQUEST_PATH;
 import static ru.practicum.shareit.related.UtilityClasses.createPageRequest;
 
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class ItemRequestServiceImpl implements ItemRequestService {
 
@@ -38,7 +35,6 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
     @Override
     public ItemRequestResponse createdRequest(int userId, CreateItemRequestReqDto createItemRequestReqDto) {
-        log.info("Получен запрос Post {} - requestor: {}", CONTROLLER_REQUEST_PATH, userId);
         User user = checkGetUserInDataBase(userId);
         ItemRequestReqDto itemRequestReqDto = itemRequestMapper.toReqDto(createItemRequestReqDto, user);
 
@@ -50,7 +46,6 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
     @Override
     public List<ItemRequestResponse> getRequests(int userId) {
-        log.info("Получен запрос GET {} - user: {}", CONTROLLER_REQUEST_PATH, userId);
         checkGetUserInDataBase(userId);
 
         List<ItemRequestShortDto> itemRequestShortList =
@@ -64,7 +59,6 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
     @Override
     public List<ItemRequestResponse> getRequestsAll(int userId, Integer from, Integer size) {
-        log.info("Получен запрос GET {}/all?from={}&size={}", CONTROLLER_REQUEST_PATH, from, size);
         checkGetUserInDataBase(userId);
         Pageable pageable = createPageRequest(from, size);
 
@@ -79,7 +73,6 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
     @Override
     public ItemRequestResponse getItemRequest(int requestId, int userId) {
-        log.info("Получен запрос GET {}/{}", CONTROLLER_REQUEST_PATH, requestId);
         checkGetUserInDataBase(userId);
         ItemRequest itemRequest = checkItemRequestInDataBase(requestId);
 

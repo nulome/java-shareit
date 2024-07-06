@@ -18,13 +18,11 @@ import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
 
 import javax.persistence.EntityNotFoundException;
-import javax.validation.ValidationException;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static ru.practicum.shareit.booking.StatusBooking.*;
-import static ru.practicum.shareit.related.Constants.CONTROLLER_BOOKING_PATH;
 import static ru.practicum.shareit.related.UtilityClasses.createPageRequest;
 
 @Slf4j
@@ -40,7 +38,6 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponse createBooking(int userId, CreateBookingRequestDto createBookingRequestDto) {
-        log.info("Получен запрос Post {} - booker: {}", CONTROLLER_BOOKING_PATH, userId);
         validationDateStartAndEnd(createBookingRequestDto);
         int itemId = createBookingRequestDto.getItemId();
         User user = checkGetUserInDataBase(userId);
@@ -56,7 +53,6 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponse readBooking(int userId, int bookingId) {
-        log.info("Получен запрос Get {}/{} от User {}", CONTROLLER_BOOKING_PATH, bookingId, userId);
         Booking booking = checkBookingInDB(bookingId);
         verificationAccessCreateUserOrBooker(userId, booking);
 
@@ -65,7 +61,6 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponse changeBookingStatus(int userId, int bookingId, boolean approved) {
-        log.info("Получен запрос PATCH {}/{}?approved={} from User {}", CONTROLLER_BOOKING_PATH, bookingId, approved, userId);
         Booking booking = checkBookingInDB(bookingId);
         if (booking.getItem().getOwner().getId() != userId) {
             throw new IllegalArgumentException("Не доступно изменение статуса Booking " + bookingId + " для User: " + userId);
@@ -76,7 +71,6 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public List<BookingResponse> getBookingsByUser(int userId, String state, Integer from, Integer size) {
-        log.info("Получен запрос GET {}?state={} от User {}", CONTROLLER_BOOKING_PATH, state, userId);
         checkGetUserInDataBase(userId);
         Pageable pageable = createPageRequest(from, size);
         List<Booking> bookingList = getBookingsByState(userId, parseStringToState(state), pageable).getContent();
@@ -87,7 +81,6 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public List<BookingResponse> getBookingsByOwnerItem(int userId, String state, Integer from, Integer size) {
-        log.info("Получен запрос GET {}/owner?state={} от OwnerItem {}", CONTROLLER_BOOKING_PATH, state, userId);
         checkGetUserInDataBase(userId);
         Pageable pageable = createPageRequest(from, size);
         List<Booking> bookingList = getBookingsByOwner(userId, parseStringToState(state), pageable).getContent();
@@ -107,13 +100,13 @@ public class BookingServiceImpl implements BookingService {
         log.trace("Проверка корректности периода бронирования к Item: {}", createBookingRequestDto.getItemId());
         if (!createBookingRequestDto.getStart().isBefore(createBookingRequestDto.getEnd()) ||
                 createBookingRequestDto.getStart().equals(createBookingRequestDto.getEnd())) {
-            throw new ValidationException("Дата End не может быть раньше или равна даты Start.");
+            throw new CustomValueException("Дата End не может быть раньше или равна даты Start.");
         }
     }
 
     private void updateStatusBooking(int bookingId, boolean approved, Booking booking) {
         if (booking.getStatus() != WAITING) {
-            throw new ValidationException("Статус WAITING уже был изменен.");
+            throw new CustomValueException("Статус WAITING уже был изменен.");
         }
         if (approved) {
             bookingRepository.updateStatusBooking(bookingId, APPROVED);

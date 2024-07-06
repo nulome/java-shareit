@@ -1,6 +1,5 @@
 package ru.practicum.shareit.item;
 
-import javax.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +23,7 @@ import ru.practicum.shareit.user.UserMapper;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
 
+import javax.persistence.EntityNotFoundException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,12 +32,11 @@ import java.util.Map;
 
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
-import static ru.practicum.shareit.related.Constants.CONTROLLER_ITEM_PATH;
 import static ru.practicum.shareit.related.UtilityClasses.createPageRequest;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
-@Slf4j
 public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
@@ -51,7 +50,6 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemResponse createItem(Integer userId, CreateItemRequestDto createItemRequestDto) {
-        log.info("Получен запрос Post {} - {} пользователя {}", CONTROLLER_ITEM_PATH, createItemRequestDto.getName(), userId);
         User user = checkUserInDB(userId);
         ItemRequest itemRequest = null;
         if (createItemRequestDto.getRequestId() != null) {
@@ -67,7 +65,6 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemWithDateBookingResponse readItem(int userId, Integer itemId) {
-        log.info("Получен запрос Get {}/{}", CONTROLLER_ITEM_PATH, itemId);
         Item item = checkItemInDB(itemId);
         ItemWithDateBookingResponse itemResponse = itemMapper.toItemWithDateBookingResponse(item);
         List<Booking> bookingList = new ArrayList<>();
@@ -81,7 +78,6 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemResponse updateItem(Integer userId, ItemRequestDto itemRequestDto) {
-        log.info("Получен запрос Put {} - {} пользователя {}", CONTROLLER_ITEM_PATH, itemRequestDto.getName(), userId);
         ItemDto itemDto = itemMapper.toItemDto(itemRequestDto);
         Item item = checkItemInDB(itemDto.getId());
         verificationOfCreator(userId, item);
@@ -97,7 +93,6 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public void deleteItem(Integer userId, Integer itemId) {
-        log.info("Получен запрос Delete {}/{} пользователя {}", CONTROLLER_ITEM_PATH, itemId, userId);
         Item item = itemRepository.getReferenceById(itemId);
         verificationOfCreator(userId, item);
 
@@ -106,7 +101,6 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemWithDateBookingResponse> getItems(int userId, Integer from, Integer size) {
-        log.info("Получен запрос Get {} пользователя {}", CONTROLLER_ITEM_PATH, userId);
         Pageable pageable = createPageRequest(from, size);
         List<Item> listItem = itemRepository.findAllByOwnerIdOrderById(userId, pageable).getContent();
         List<Booking> bookingList = bookingRepository.getBookingsByOwnerItemAndStatus(
@@ -122,7 +116,6 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemResponse changeItem(Integer userId, Integer itemId, PatchItemRequestDto patchItemRequestDto) {
-        log.info("Получен запрос Patch {}/{} пользователя {}", CONTROLLER_ITEM_PATH, itemId, userId);
         Item item = checkItemInDB(itemId);
         verificationOfCreator(userId, item);
         ItemDto itemDto = itemMapper.toItemDto(item);
@@ -135,7 +128,6 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemResponse> getItemsByTextSearch(Integer userId, String text, Integer from, Integer size) {
-        log.info("Получен запрос Get {}/search?text={}", CONTROLLER_ITEM_PATH, text);
         checkUserInDB(userId);
         if (text.isBlank()) {
             return Collections.emptyList();
@@ -149,7 +141,6 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public CommentResponse createComment(int userId, Integer itemId, CreateCommentRequestDto createCommentRequestDto) {
-        log.info("Получен запрос POST {}/{}/comment от User {}", CONTROLLER_ITEM_PATH, itemId, userId);
         Booking booking = checkAppropriateBookingInDB(userId, itemId);
         CommentDto commentDto = itemMapper.toCommentDto(createCommentRequestDto, booking.getBooker(), booking.getItem());
 

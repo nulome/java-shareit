@@ -1,7 +1,5 @@
 package ru.practicum.shareit.booking;
 
-import javax.persistence.EntityNotFoundException;
-import javax.validation.ValidationException;
 import org.jeasy.random.EasyRandom;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +22,7 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.model.User;
 
+import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -135,7 +134,7 @@ class BookingServiceImplTest {
         createBookingRequestDto.setStart(LocalDateTime.now().minusHours(1));
         createBookingRequestDto.setEnd(LocalDateTime.now().minusDays(1));
 
-        assertThrows(ValidationException.class, () -> bookingService.createBooking(userId, createBookingRequestDto));
+        assertThrows(CustomValueException.class, () -> bookingService.createBooking(userId, createBookingRequestDto));
         verify(bookingRepository, never()).save(any(Booking.class));
     }
 
@@ -198,7 +197,7 @@ class BookingServiceImplTest {
         booking.setStatus(StatusBooking.REJECTED);
         when(bookingRepository.getBookingById(anyInt())).thenReturn(Optional.of(booking));
 
-        assertThrows(ValidationException.class, () -> bookingService.changeBookingStatus(userId, 1, false));
+        assertThrows(CustomValueException.class, () -> bookingService.changeBookingStatus(userId, 1, false));
         verify(bookingMapper, never()).toBookingResponse(any(Booking.class));
     }
 

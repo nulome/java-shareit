@@ -37,14 +37,12 @@ public abstract class ItemRequestMapper {
 
     @Mapping(target = "requestor", expression = "java(userMapper.toResponse(itemRequest.getRequestor()))")
     @Mapping(target = "created", expression = "java(convertToLocal(itemRequest.getCreated()))")
-    @Mapping(target = "items", ignore = true)
     public abstract ItemRequestResponse toItemRequestResponse(ItemRequest itemRequest);
 
 
     @Mapping(target = "created", expression = "java(convertToLocal(itemRequestShortDto.getCreated()))")
     public abstract ItemRequestResponse toItemRequestResponse(ItemRequestShortDto itemRequestShortDto);
 
-    @Mapping(target = "items", ignore = true)
     public abstract ItemRequestShortDto toItemRequestShortDto(ItemRequest itemRequest);
 
     @Named("toUser")

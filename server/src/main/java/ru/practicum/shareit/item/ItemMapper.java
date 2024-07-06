@@ -33,9 +33,6 @@ public abstract class ItemMapper {
     @Mapping(target = "request", expression = "java(toItemRequestResponse(itemRequest))")
     public abstract ItemDto toItemDto(CreateItemRequestDto createItemRequestDto, User user, ItemRequest itemRequest);
 
-    @Mapping(target = "nextBooking", ignore = true)
-    @Mapping(target = "lastBooking", ignore = true)
-    @Mapping(target = "comments", ignore = true)
     public abstract ItemWithDateBookingResponse toItemWithDateBookingResponse(Item item);
 
     @Mapping(target = "request", expression = "java(itemRequestMapper.toItemRequest(itemDto.getRequest()))")
@@ -44,8 +41,6 @@ public abstract class ItemMapper {
     @Mapping(target = "request", expression = "java(toItemRequestResponse(item.getRequest()))")
     public abstract ItemDto toItemDto(Item item);
 
-    @Mapping(target = "owner", ignore = true)
-    @Mapping(target = "request", ignore = true)
     public abstract ItemDto toItemDto(ItemRequestDto itemRequestDto);
 
     @Mapping(target = "requestId", expression = "java(getRequestId(item.getRequest()))")

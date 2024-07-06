@@ -1,13 +1,12 @@
 package ru.practicum.shareit.handler;
 
-import javax.persistence.EntityNotFoundException;
-import javax.validation.ValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DuplicateKeyException;
 
+import javax.persistence.EntityNotFoundException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -19,12 +18,6 @@ class ErrorHandlerTest {
     @BeforeEach
     void setUp() {
         errorHandler = new ErrorHandler();
-    }
-
-    @Test
-    void handleValidationException() {
-        ErrorResponse handleActual = errorHandler.handleValidationException(new ValidationException("Test"));
-        assertEquals("Test", handleActual.getDescription());
     }
 
     @Test
